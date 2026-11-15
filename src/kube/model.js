@@ -170,6 +170,7 @@ export function parseSnapshot(read, now) {
       continue; // a finished Job: nothing to watch
     }
     pods.total += 1;
+    const initNames = new Set((pod.status?.initContainerStatuses ?? []).map((s) => s.name));
     const statuses = [
       ...(pod.status?.initContainerStatuses ?? []),
       ...(pod.status?.containerStatuses ?? []),
@@ -207,7 +208,7 @@ export function parseSnapshot(read, now) {
         });
       } else if (
         (status.state?.running && status.ready) ||
-        status.state?.terminated?.reason === 'Completed'
+        (initNames.has(status.name) && status.state?.terminated?.reason === 'Completed')
       ) {
         // Running and ready, or an init container that finished its work.
         healthyContainers.push(id);

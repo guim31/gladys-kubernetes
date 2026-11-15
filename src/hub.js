@@ -50,8 +50,8 @@ export const HUB_TIMINGS = {
   heartbeatMs: 6 * 3600_000,
   // The scene action reads the cluster again when the last read is older.
   freshMs: 15_000,
-  // A whole read (a dozen requests at most) gives up after this long.
-  readTimeoutMs: 120_000,
+  // A whole read gives up after this long, whatever each request still allows.
+  readTimeoutMs: 60_000,
 };
 
 const MAX_TRANSPORTS_PER_REQUEST = 100;

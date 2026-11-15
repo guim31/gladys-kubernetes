@@ -246,7 +246,7 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
   première version (relecture du 15/11, `test/http.test.js` le fige).
 - **Délais** : `timeout` de `http.request` ne joue pas sur une socket fournie par `createConnection` ; un serveur
   qui accepte puis se tait figeait tout le hub (lecture partagée jamais résolue, minuteur jamais réarmé). D'où un
-  délai global par requête et un par lecture (`readTimeoutMs`), et `schedulePoll` dans un `finally`.
+  délai global par requête et un par lecture (`readTimeoutMs`, 60 s), et `schedulePoll` dans un `finally`.
 - **HTTPS seulement** : `http://` refusé à la configuration (le jeton partirait en clair).
 - **Champ d'une ligne** : un PEM collé dans un `string` perd ses retours à la ligne (espaces ou rien selon le
   navigateur) ; `parseCaCertificate` reconstruit le PEM, accepte aussi `certificate-authority-data` (le PEM en
