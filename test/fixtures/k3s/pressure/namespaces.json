@@ -1,0 +1,100 @@
+{
+  "kind": "NamespaceList",
+  "apiVersion": "v1",
+  "metadata": {
+    "resourceVersion": "691"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "default",
+        "uid": "7a60deee-b16d-4e2a-9fc0-7a09b5d07c48",
+        "creationTimestamp": "2026-11-15T09:26:42Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "default"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    },
+    {
+      "metadata": {
+        "name": "gladys",
+        "uid": "811b9295-c905-4f65-94e5-f00d326f58c5",
+        "creationTimestamp": "2026-11-15T09:28:02Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "gladys"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    },
+    {
+      "metadata": {
+        "name": "home",
+        "uid": "20c407cd-c579-4352-a3bb-865a2ef542be",
+        "creationTimestamp": "2026-11-15T09:28:02Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "home"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    },
+    {
+      "metadata": {
+        "name": "kube-node-lease",
+        "uid": "f33c97ee-ab06-4ec6-ab3c-a662ced5019b",
+        "creationTimestamp": "2026-11-15T09:26:43Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "kube-node-lease"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    },
+    {
+      "metadata": {
+        "name": "kube-public",
+        "uid": "984be8dd-2498-4365-8f90-38ccf074260b",
+        "creationTimestamp": "2026-11-15T09:26:42Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "kube-public"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    },
+    {
+      "metadata": {
+        "name": "kube-system",
+        "uid": "187dc0e7-fed1-45ab-bbb7-9f2b28e57ba9",
+        "creationTimestamp": "2026-11-15T09:26:42Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "kube-system"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    },
+    {
+      "metadata": {
+        "name": "lab",
+        "uid": "fd4ecac3-c9fb-4754-a284-255423189636",
+        "creationTimestamp": "2026-11-15T09:28:02Z",
+        "labels": {
+          "kubernetes.io/metadata.name": "lab"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    }
+  ]
+}

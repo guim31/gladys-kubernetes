@@ -1,0 +1,604 @@
+{
+  "kind": "PodList",
+  "apiVersion": "v1",
+  "metadata": {
+    "resourceVersion": "691"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "broken-74d7ff7d46-mxnvt",
+        "namespace": "home",
+        "uid": "24d0c352-699f-4874-9b07-0514752d47ae",
+        "creationTimestamp": "2026-11-15T09:28:03Z",
+        "labels": {
+          "app": "broken",
+          "pod-template-hash": "74d7ff7d46"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "broken-74d7ff7d46",
+            "uid": "3fa67304-6be2-4306-8078-f40142e4c834",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "crash",
+            "image": "mirror.gcr.io/library/busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:28:03Z",
+            "reason": "Unschedulable",
+            "message": "0/1 nodes are available: 1 node(s) had untolerated taint {node.kubernetes.io/disk-pressure: }. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    },
+    {
+      "metadata": {
+        "name": "db-0",
+        "namespace": "home",
+        "uid": "fc7ae0b9-6f13-485d-8999-b1555dd96d84",
+        "creationTimestamp": "2026-11-15T09:28:03Z",
+        "labels": {
+          "app": "db",
+          "apps.kubernetes.io/pod-index": "0",
+          "controller-revision-hash": "db-7dd5dc7879",
+          "statefulset.kubernetes.io/pod-name": "db-0"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "StatefulSet",
+            "name": "db",
+            "uid": "c0e8755e-38bd-4e77-af14-86c172223fb5",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "db",
+            "image": "mirror.gcr.io/library/busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:28:03Z",
+            "reason": "Unschedulable",
+            "message": "0/1 nodes are available: 1 node(s) had untolerated taint {node.kubernetes.io/disk-pressure: }. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    },
+    {
+      "metadata": {
+        "name": "pending-6c54b5ccc-dpjmq",
+        "namespace": "home",
+        "uid": "76ce9d97-11ce-455c-9441-5fdd6d5c8553",
+        "creationTimestamp": "2026-11-15T09:28:03Z",
+        "labels": {
+          "app": "pending",
+          "pod-template-hash": "6c54b5ccc"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "pending-6c54b5ccc",
+            "uid": "49bfcc11-0d7f-4c5e-aca1-1008c6ab9a76",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "big",
+            "image": "mirror.gcr.io/library/busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:28:03Z",
+            "reason": "Unschedulable",
+            "message": "0/1 nodes are available: 1 node(s) had untolerated taint {node.kubernetes.io/disk-pressure: }. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+          }
+        ],
+        "qosClass": "Burstable"
+      }
+    },
+    {
+      "metadata": {
+        "name": "web-754f9c55d9-z88fx",
+        "namespace": "home",
+        "uid": "cb4362a5-0c43-451b-9f0d-c94c5fb94340",
+        "creationTimestamp": "2026-11-15T09:28:03Z",
+        "labels": {
+          "app": "web",
+          "pod-template-hash": "754f9c55d9"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "web-754f9c55d9",
+            "uid": "8f2d14c1-8c4f-4992-876f-0753a7ebeb53",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "web",
+            "image": "mirror.gcr.io/library/busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:28:03Z",
+            "reason": "Unschedulable",
+            "message": "0/1 nodes are available: 1 node(s) had untolerated taint {node.kubernetes.io/disk-pressure: }. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    },
+    {
+      "metadata": {
+        "name": "web-754f9c55d9-zf4d4",
+        "namespace": "home",
+        "uid": "b98847c4-8167-4b45-b04c-5ca211fed3b9",
+        "creationTimestamp": "2026-11-15T09:28:03Z",
+        "labels": {
+          "app": "web",
+          "pod-template-hash": "754f9c55d9"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "web-754f9c55d9",
+            "uid": "8f2d14c1-8c4f-4992-876f-0753a7ebeb53",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "web",
+            "image": "mirror.gcr.io/library/busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:28:03Z",
+            "reason": "Unschedulable",
+            "message": "0/1 nodes are available: 1 node(s) had untolerated taint {node.kubernetes.io/disk-pressure: }. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    },
+    {
+      "metadata": {
+        "name": "coredns-ccb96694c-h7p8t",
+        "namespace": "kube-system",
+        "uid": "045d30e3-309d-44aa-8b79-1e5c1a1b969c",
+        "creationTimestamp": "2026-11-15T09:26:50Z",
+        "labels": {
+          "k8s-app": "kube-dns",
+          "pod-template-hash": "ccb96694c"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "coredns-ccb96694c",
+            "uid": "1c8778db-a1de-42b3-a595-177f6a12fdcc",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "nodeName": "gladys-test-kubernetes-k3s",
+        "containers": [
+          {
+            "name": "coredns",
+            "image": "rancher/mirrored-coredns-coredns:1.12.0"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "PodReadyToStartContainers",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:11Z"
+          },
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:26:50Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:11Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:11Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:26:50Z"
+          }
+        ],
+        "hostIP": "192.0.2.10",
+        "hostIPs": [
+          {
+            "ip": "192.0.2.10"
+          }
+        ],
+        "podIP": "10.42.0.4",
+        "podIPs": [
+          {
+            "ip": "10.42.0.4"
+          }
+        ],
+        "startTime": "2026-11-15T09:26:50Z",
+        "containerStatuses": [
+          {
+            "name": "coredns",
+            "state": {
+              "running": {
+                "startedAt": "2026-11-15T09:27:10Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "docker.io/rancher/mirrored-coredns-coredns:1.12.0",
+            "imageID": "docker.io/rancher/mirrored-coredns-coredns@sha256:82979ddf442c593027a57239ad90616deb874e90c365d1a96ad508c2104bdea5",
+            "containerID": "containerd://f8e65a0ccda91cc50633d7722e2256f1a5b647e922bf68580b62feac13171598",
+            "started": true
+          }
+        ],
+        "qosClass": "Burstable"
+      }
+    },
+    {
+      "metadata": {
+        "name": "local-path-provisioner-5cf85fd84d-pvgsm",
+        "namespace": "kube-system",
+        "uid": "c4deeadf-a518-4010-9061-94ee0333bc3d",
+        "creationTimestamp": "2026-11-15T09:26:50Z",
+        "labels": {
+          "app": "local-path-provisioner",
+          "pod-template-hash": "5cf85fd84d"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "local-path-provisioner-5cf85fd84d",
+            "uid": "f09544d3-df1b-4cb3-a628-fd7c83b4c7c7",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "nodeName": "gladys-test-kubernetes-k3s",
+        "containers": [
+          {
+            "name": "local-path-provisioner",
+            "image": "rancher/local-path-provisioner:v0.0.30"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "PodReadyToStartContainers",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:09Z"
+          },
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:26:50Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:09Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:09Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:26:50Z"
+          }
+        ],
+        "hostIP": "192.0.2.10",
+        "hostIPs": [
+          {
+            "ip": "192.0.2.10"
+          }
+        ],
+        "podIP": "10.42.0.2",
+        "podIPs": [
+          {
+            "ip": "10.42.0.2"
+          }
+        ],
+        "startTime": "2026-11-15T09:26:50Z",
+        "containerStatuses": [
+          {
+            "name": "local-path-provisioner",
+            "state": {
+              "running": {
+                "startedAt": "2026-11-15T09:27:08Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "docker.io/rancher/local-path-provisioner:v0.0.30",
+            "imageID": "docker.io/rancher/local-path-provisioner@sha256:9b914881170048f80ae9302f36e5b99b4a6b18af73a38adc1c66d12f65d360be",
+            "containerID": "containerd://8f25fa5c46fdb32228edb19699644b7a3a1a2f4818e53580b89b1b635bf387b9",
+            "started": true
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    },
+    {
+      "metadata": {
+        "name": "metrics-server-5985cbc9d7-2nrvj",
+        "namespace": "kube-system",
+        "uid": "f251b6d4-5147-4f8d-8527-33947f40c55a",
+        "creationTimestamp": "2026-11-15T09:26:50Z",
+        "labels": {
+          "k8s-app": "metrics-server",
+          "pod-template-hash": "5985cbc9d7"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "metrics-server-5985cbc9d7",
+            "uid": "99cb3008-b870-4cc4-8d87-c751dc6c9ba0",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "nodeName": "gladys-test-kubernetes-k3s",
+        "containers": [
+          {
+            "name": "metrics-server",
+            "image": "rancher/mirrored-metrics-server:v0.7.2"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "PodReadyToStartContainers",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:11Z"
+          },
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:26:50Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:27Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:27:27Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:26:50Z"
+          }
+        ],
+        "hostIP": "192.0.2.10",
+        "hostIPs": [
+          {
+            "ip": "192.0.2.10"
+          }
+        ],
+        "podIP": "10.42.0.3",
+        "podIPs": [
+          {
+            "ip": "10.42.0.3"
+          }
+        ],
+        "startTime": "2026-11-15T09:26:50Z",
+        "containerStatuses": [
+          {
+            "name": "metrics-server",
+            "state": {
+              "running": {
+                "startedAt": "2026-11-15T09:27:10Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "docker.io/rancher/mirrored-metrics-server:v0.7.2",
+            "imageID": "docker.io/rancher/mirrored-metrics-server@sha256:dccf8474fb910fef261d31d9483d7e4c1df7b86cf4d638fb6a7d7c88bd51600a",
+            "containerID": "containerd://9dd5989c26e91f8c0eb2fb964ba9b4b2adc27d43b82a282007cf3d6298f74e39",
+            "started": true
+          }
+        ],
+        "qosClass": "Burstable"
+      }
+    },
+    {
+      "metadata": {
+        "name": "agent-4r7jx",
+        "namespace": "lab",
+        "uid": "36a2df0e-e73e-42e6-b837-2cf7546f885a",
+        "creationTimestamp": "2026-11-15T09:29:06Z",
+        "labels": {
+          "app": "agent",
+          "controller-revision-hash": "84fddcf469",
+          "pod-template-generation": "1"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "DaemonSet",
+            "name": "agent",
+            "uid": "41296d40-3a2e-419b-8730-0273092dcb01",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "nodeName": "gladys-test-kubernetes-k3s",
+        "containers": [
+          {
+            "name": "agent",
+            "image": "mirror.gcr.io/library/busybox:1.36"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Failed",
+        "message": "Pod was rejected: The node had condition: [DiskPressure]. ",
+        "reason": "Evicted",
+        "startTime": "2026-11-15T09:29:06Z"
+      }
+    },
+    {
+      "metadata": {
+        "name": "badimage-7ddc498f57-kk4vg",
+        "namespace": "lab",
+        "uid": "7042ddf4-5bd3-425f-91d6-10bac97e848d",
+        "creationTimestamp": "2026-11-15T09:28:03Z",
+        "labels": {
+          "app": "badimage",
+          "pod-template-hash": "7ddc498f57"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "badimage-7ddc498f57",
+            "uid": "e31e3863-090b-433d-b173-ece32ebd68b6",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "x",
+            "image": "mirror.gcr.io/library/busybox:does-not-exist-0"
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2026-11-15T09:28:03Z",
+            "reason": "Unschedulable",
+            "message": "0/1 nodes are available: 1 node(s) had untolerated taint {node.kubernetes.io/disk-pressure: }. preemption: 0/1 nodes are available: 1 Preemption is not helpful for scheduling."
+          }
+        ],
+        "qosClass": "BestEffort"
+      }
+    }
+  ]
+}

@@ -1,177 +1,766 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "Kubernetes",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Watch your Kubernetes cluster (k3s, k0s, MicroK8s…): nodes, pods and deployments, read-only.",
+    "fr": "Surveillez votre cluster Kubernetes (k3s, k0s, MicroK8s…) : nœuds, pods et déploiements.",
+    "de": "Überwache deinen Kubernetes-Cluster (k3s, k0s, MicroK8s …): Knoten, Pods und Deployments.",
+    "es": "Vigile su clúster Kubernetes (k3s, k0s, MicroK8s…): nodos, pods y despliegues, en solo lectura."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-kubernetes:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-kubernetes/main/cover.png",
+  "categories": ["network"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your cluster",
+        "fr": "Votre cluster",
+        "de": "Dein Cluster",
+        "es": "Su clúster"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Create a read-only ServiceAccount in the cluster (YAML in the setup guide), then enter the address of the API server and its token below. Gladys only reads: it never changes anything in the cluster.",
+        "fr": "Créez un ServiceAccount en lecture seule dans le cluster (YAML dans le guide d'installation), puis saisissez ci-dessous l'adresse du serveur d'API et son jeton. Gladys ne fait que lire : elle ne modifie rien dans le cluster.",
+        "de": "Lege im Cluster einen schreibgeschützten ServiceAccount an (YAML in der Installationsanleitung) und gib unten die Adresse des API-Servers und sein Token ein. Gladys liest nur und ändert nichts im Cluster.",
+        "es": "Cree un ServiceAccount de solo lectura en el clúster (YAML en la guía de instalación) e introduzca abajo la dirección del servidor de API y su token. Gladys solo lee: no modifica nada en el clúster."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-kubernetes/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Installationsanleitung",
+            "es": "Guía de instalación"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "key": "api_url",
+      "type": "string",
       "required": false,
-      "default": "celsius",
+      "label": {
+        "en": "API server address",
+        "fr": "Adresse du serveur d'API",
+        "de": "Adresse des API-Servers",
+        "es": "Dirección del servidor de API"
+      },
+      "placeholder": {
+        "en": "https://192.168.1.30:6443",
+        "fr": "https://192.168.1.30:6443",
+        "de": "https://192.168.1.30:6443",
+        "es": "https://192.168.1.30:6443"
+      },
+      "description": {
+        "en": "The \"server:\" line of your kubeconfig, or the IP of a control-plane node (port 6443 by default).",
+        "fr": "La ligne « server: » de votre kubeconfig, ou l’IP d’un nœud du plan de contrôle (port 6443 par défaut).",
+        "de": "Die Zeile „server:“ deiner kubeconfig oder die IP eines Control-Plane-Knotens (standardmäßig Port 6443).",
+        "es": "La línea «server:» de su kubeconfig, o la IP de un nodo del plano de control (puerto 6443 por defecto)."
+      }
+    },
+    {
+      "key": "token",
+      "type": "secret",
+      "required": false,
+      "label": {
+        "en": "ServiceAccount token",
+        "fr": "Jeton du ServiceAccount",
+        "de": "ServiceAccount-Token",
+        "es": "Token del ServiceAccount"
+      },
+      "description": {
+        "en": "The token of the gladys-reader ServiceAccount (command in the setup guide).",
+        "fr": "Le jeton du ServiceAccount gladys-reader (commande dans le guide d'installation).",
+        "de": "Das Token des ServiceAccounts gladys-reader (Befehl in der Installationsanleitung).",
+        "es": "El token del ServiceAccount gladys-reader (comando en la guía de instalación)."
+      }
+    },
+    {
+      "key": "ca_certificate",
+      "type": "string",
+      "required": false,
+      "label": {
+        "en": "Cluster authority (optional)",
+        "fr": "Autorité du cluster (facultatif)",
+        "de": "Zertifizierungsstelle des Clusters (optional)",
+        "es": "Autoridad del clúster (opcional)"
+      },
+      "description": {
+        "en": "The certificate-authority-data of your kubeconfig, or the ca.crt of the cluster, pasted as is. Or leave empty and use the fingerprint below.",
+        "fr": "Le certificate-authority-data de votre kubeconfig, ou le ca.crt du cluster, collé tel quel. Ou laissez vide et utilisez l'empreinte ci-dessous.",
+        "de": "Das certificate-authority-data deiner kubeconfig oder die ca.crt des Clusters, unverändert eingefügt. Oder leer lassen und den Fingerabdruck unten nutzen.",
+        "es": "El certificate-authority-data de su kubeconfig, o el ca.crt del clúster, pegado tal cual. O déjelo vacío y use la huella de abajo."
+      }
+    },
+    {
+      "key": "certificate_fingerprint",
+      "type": "string",
+      "required": false,
+      "label": {
+        "en": "Certificate fingerprint (optional)",
+        "fr": "Empreinte du certificat (facultatif)",
+        "de": "Zertifikat-Fingerabdruck (optional)",
+        "es": "Huella del certificado (opcional)"
+      },
+      "placeholder": {
+        "en": "AB:CD:…",
+        "fr": "AB:CD:…",
+        "de": "AB:CD:…",
+        "es": "AB:CD:…"
+      },
+      "description": {
+        "en": "Without an authority, \"Test the connection\" shows the SHA-256 fingerprint the server sends: check it, then paste it here to trust that server.",
+        "fr": "Sans autorité, « Tester la connexion » affiche l'empreinte SHA-256 envoyée par le serveur : vérifiez-la, puis collez-la ici pour faire confiance à ce serveur.",
+        "de": "Ohne Zertifizierungsstelle zeigt „Verbindung testen“ den SHA-256-Fingerabdruck des Servers: Prüfe ihn und füge ihn hier ein, um dem Server zu vertrauen.",
+        "es": "Sin autoridad, «Probar la conexión» muestra la huella SHA-256 que envía el servidor: compruébela y péguela aquí para confiar en ese servidor."
+      }
+    },
+    {
+      "key": "options",
+      "type": "section",
+      "label": {
+        "en": "Options",
+        "fr": "Options",
+        "de": "Optionen",
+        "es": "Opciones"
+      },
+      "description": {
+        "en": "Only the devices added to Gladys receive values; the scene triggers work for every node and workload.",
+        "fr": "Seuls les appareils ajoutés à Gladys reçoivent des valeurs ; les déclencheurs de scène fonctionnent pour tous les nœuds et charges.",
+        "de": "Nur die zu Gladys hinzugefügten Geräte erhalten Werte; die Szenen-Auslöser funktionieren für alle Knoten und Workloads.",
+        "es": "Solo los dispositivos añadidos a Gladys reciben valores; los disparadores de escena funcionan para todos los nodos y cargas."
+      }
+    },
+    {
+      "key": "cluster_name",
+      "type": "string",
+      "required": false,
+      "label": {
+        "en": "Cluster name (optional)",
+        "fr": "Nom du cluster (facultatif)",
+        "de": "Name des Clusters (optional)",
+        "es": "Nombre del clúster (opcional)"
+      },
+      "placeholder": {
+        "en": "Kubernetes",
+        "fr": "Kubernetes",
+        "de": "Kubernetes",
+        "es": "Kubernetes"
+      },
+      "description": {
+        "en": "Shown in the device name, the widget and the messages.",
+        "fr": "Affiché dans le nom de l'appareil, le widget et les messages.",
+        "de": "Wird im Gerätenamen, im Widget und in den Nachrichten angezeigt.",
+        "es": "Se muestra en el nombre del dispositivo, el widget y los mensajes."
+      }
+    },
+    {
+      "key": "namespaces",
+      "type": "string",
+      "required": false,
+      "label": {
+        "en": "Namespaces (optional)",
+        "fr": "Espaces de noms (facultatif)",
+        "de": "Namespaces (optional)",
+        "es": "Espacios de nombres (opcional)"
+      },
+      "placeholder": {
+        "en": "home, media",
+        "fr": "home, media",
+        "de": "home, media",
+        "es": "home, media"
+      },
+      "description": {
+        "en": "The namespaces whose pods and workloads are followed, separated by commas. Empty: every namespace.",
+        "fr": "Les espaces de noms dont les pods et charges sont suivis, séparés par des virgules. Vide : tous.",
+        "de": "Die Namespaces, deren Pods und Workloads verfolgt werden, durch Kommas getrennt. Leer: alle.",
+        "es": "Los espacios de nombres cuyos pods y cargas se siguen, separados por comas. Vacío: todos."
+      }
+    },
+    {
+      "key": "poll_interval",
+      "type": "select",
+      "required": false,
+      "default": "60",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
+      "description": {
+        "en": "How often the cluster is read.",
+        "fr": "Fréquence de lecture du cluster.",
+        "de": "Wie oft der Cluster gelesen wird.",
+        "es": "Con qué frecuencia se lee el clúster."
+      },
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
-      "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
-      },
+      "key": "language",
+      "type": "select",
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
+      "description": {
+        "en": "Language of the feature names (set when a device is added), of the scene results and of the connection test.",
+        "fr": "Langue des noms des fonctionnalités (fixés à l'ajout d'un appareil), des résultats de scène et du test de connexion.",
+        "de": "Sprache der Funktionsnamen (beim Hinzufügen eines Geräts festgelegt), der Szenen-Ergebnisse und des Verbindungstests.",
+        "es": "Idioma de los nombres de las funciones (fijados al añadir un dispositivo), de los resultados de escena y de la prueba de conexión."
+      },
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "English",
+            "de": "English",
+            "es": "English"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "Français",
+            "fr": "Français",
+            "de": "Français",
+            "es": "Français"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "Deutsch",
+            "fr": "Deutsch",
+            "de": "Deutsch",
+            "es": "Deutsch"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Español",
+            "fr": "Español",
+            "de": "Español",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Reads the cluster now and says what it found, or the fingerprint to confirm.",
+        "fr": "Lit le cluster maintenant et dit ce qu'il a trouvé, ou l'empreinte à confirmer.",
+        "de": "Liest jetzt den Cluster und sagt, was gefunden wurde, oder den zu bestätigenden Fingerabdruck.",
+        "es": "Lee ahora el clúster e indica lo que ha encontrado, o la huella que hay que confirmar."
+      },
+      "timeout_seconds": 60
+    }
+  ],
+  "widgets": [
     {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
+      "key": "cluster",
+      "label": {
+        "en": "Kubernetes cluster",
+        "fr": "Cluster Kubernetes",
+        "de": "Kubernetes-Cluster",
+        "es": "Clúster Kubernetes"
+      },
+      "icon": "server",
+      "description": {
+        "en": "Nodes ready, pods running and failed, degraded workloads, and the list of problems.",
+        "fr": "Nœuds prêts, pods en marche et en échec, charges dégradées, et la liste des problèmes.",
+        "de": "Bereite Knoten, laufende und fehlerhafte Pods, beeinträchtigte Workloads und die Probleme.",
+        "es": "Nodos listos, pods en marcha y con error, cargas degradadas y la lista de problemas."
+      },
+      "settings": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "key": "show_problems",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "label": {
+            "en": "Show the problems",
+            "fr": "Afficher les problèmes",
+            "de": "Probleme anzeigen",
+            "es": "Mostrar los problemas"
+          },
+          "description": {
+            "en": "Nodes, workloads and pods in trouble, under the tiles.",
+            "fr": "Nœuds, charges et pods en difficulté, sous les tuiles.",
+            "de": "Knoten, Workloads und Pods mit Problemen, unter den Kacheln.",
+            "es": "Nodos, cargas y pods con problemas, bajo los mosaicos."
+          }
+        },
+        {
+          "key": "show_refresh",
+          "type": "boolean",
+          "required": false,
+          "default": true,
+          "label": {
+            "en": "Show the Refresh button",
+            "fr": "Afficher le bouton Actualiser",
+            "de": "Schaltfläche Aktualisieren anzeigen",
+            "es": "Mostrar el botón Actualizar"
+          }
         }
-      ]
+      ],
+      "action_timeout_seconds": 30
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "node_not_ready",
+      "label": {
+        "en": "Node not ready",
+        "fr": "Nœud pas prêt",
+        "de": "Knoten nicht bereit",
+        "es": "Nodo no listo"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A node of the cluster is no longer ready (two reads in a row).",
+        "fr": "Un nœud du cluster n'est plus prêt (deux lectures de suite).",
+        "de": "Ein Knoten des Clusters ist nicht mehr bereit (zwei Lesungen hintereinander).",
+        "es": "Un nodo del clúster ya no está listo (dos lecturas seguidas)."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "node",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
-        },
-        {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
-          "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
-          ]
+          "label": {
+            "en": "Node",
+            "fr": "Nœud",
+            "de": "Knoten",
+            "es": "Nodo"
+          },
+          "description": {
+            "en": "A node device. Empty: every node.",
+            "fr": "Un appareil nœud. Vide : tous les nœuds.",
+            "de": "Ein Knoten-Gerät. Leer: alle Knoten.",
+            "es": "Un dispositivo nodo. Vacío: todos los nodos."
+          }
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "node_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Node",
+            "fr": "Nœud",
+            "de": "Knoten",
+            "es": "Nodo"
+          }
+        },
+        {
+          "key": "reason",
+          "type": "string",
+          "label": {
+            "en": "Reason",
+            "fr": "Raison",
+            "de": "Grund",
+            "es": "Motivo"
+          }
+        }
+      ]
+    },
+    {
+      "key": "workload_degraded",
+      "label": {
+        "en": "Workload degraded",
+        "fr": "Charge dégradée",
+        "de": "Workload beeinträchtigt",
+        "es": "Carga degradada"
+      },
+      "description": {
+        "en": "A Deployment, StatefulSet or DaemonSet has fewer ready replicas than wanted for 3 minutes.",
+        "fr": "Un Deployment, StatefulSet ou DaemonSet a moins de réplicas prêts que voulu depuis 3 minutes.",
+        "de": "Ein Deployment, StatefulSet oder DaemonSet hat seit 3 Minuten weniger bereite Replikate als gewünscht.",
+        "es": "Un Deployment, StatefulSet o DaemonSet tiene menos réplicas listas de las deseadas desde hace 3 minutos."
+      },
+      "fields": [
+        {
+          "key": "workload",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Workload",
+            "fr": "Charge",
+            "de": "Workload",
+            "es": "Carga"
+          },
+          "description": {
+            "en": "A Deployment, StatefulSet or DaemonSet device. Empty: every one.",
+            "fr": "Un appareil Deployment, StatefulSet ou DaemonSet. Vide : tous.",
+            "de": "Ein Deployment-, StatefulSet- oder DaemonSet-Gerät. Leer: alle.",
+            "es": "Un dispositivo Deployment, StatefulSet o DaemonSet. Vacío: todos."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "workload_name",
+          "type": "string",
+          "label": {
+            "en": "Name",
+            "fr": "Nom",
+            "de": "Name",
+            "es": "Nombre"
+          }
+        },
+        {
+          "key": "namespace",
+          "type": "string",
+          "label": {
+            "en": "Namespace",
+            "fr": "Espace de noms",
+            "de": "Namespace",
+            "es": "Espacio de nombres"
+          }
+        },
+        {
+          "key": "kind",
+          "type": "string",
+          "label": {
+            "en": "Kind",
+            "fr": "Type",
+            "de": "Art",
+            "es": "Tipo"
+          }
+        },
+        {
+          "key": "ready_replicas",
+          "type": "number",
+          "label": {
+            "en": "Ready replicas",
+            "fr": "Réplicas prêts",
+            "de": "Bereite Replikate",
+            "es": "Réplicas listas"
+          }
+        },
+        {
+          "key": "desired_replicas",
+          "type": "number",
+          "label": {
+            "en": "Desired replicas",
+            "fr": "Réplicas voulus",
+            "de": "Gewünschte Replikate",
+            "es": "Réplicas deseadas"
+          }
+        }
+      ]
+    },
+    {
+      "key": "pod_crash_looping",
+      "label": {
+        "en": "Pod in CrashLoopBackOff",
+        "fr": "Pod en CrashLoopBackOff",
+        "de": "Pod in CrashLoopBackOff",
+        "es": "Pod en CrashLoopBackOff"
+      },
+      "description": {
+        "en": "A container keeps crashing and Kubernetes waits before restarting it. Announced again after 10 minutes running.",
+        "fr": "Un conteneur plante sans cesse et Kubernetes attend avant de le relancer. Annoncé de nouveau après 10 minutes en marche.",
+        "de": "Ein Container stürzt ständig ab und Kubernetes wartet mit dem Neustart. Erneut gemeldet nach 10 Minuten Laufzeit.",
+        "es": "Un contenedor falla sin parar y Kubernetes espera antes de reiniciarlo. Se avisa de nuevo tras 10 minutos en marcha."
+      },
+      "fields": [
+        {
+          "key": "workload",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Workload",
+            "fr": "Charge",
+            "de": "Workload",
+            "es": "Carga"
+          },
+          "description": {
+            "en": "The Deployment, StatefulSet or DaemonSet of the pod. Empty: every pod.",
+            "fr": "Le Deployment, StatefulSet ou DaemonSet du pod. Vide : tous les pods.",
+            "de": "Das Deployment, StatefulSet oder DaemonSet des Pods. Leer: alle Pods.",
+            "es": "El Deployment, StatefulSet o DaemonSet del pod. Vacío: todos los pods."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "pod_name",
+          "type": "string",
+          "label": {
+            "en": "Pod",
+            "fr": "Pod",
+            "de": "Pod",
+            "es": "Pod"
+          }
+        },
+        {
+          "key": "container_name",
+          "type": "string",
+          "label": {
+            "en": "Container",
+            "fr": "Conteneur",
+            "de": "Container",
+            "es": "Contenedor"
+          }
+        },
+        {
+          "key": "namespace",
+          "type": "string",
+          "label": {
+            "en": "Namespace",
+            "fr": "Espace de noms",
+            "de": "Namespace",
+            "es": "Espacio de nombres"
+          }
+        },
+        {
+          "key": "workload_name",
+          "type": "string",
+          "label": {
+            "en": "Workload",
+            "fr": "Charge",
+            "de": "Workload",
+            "es": "Carga"
+          }
+        },
+        {
+          "key": "restarts",
+          "type": "number",
+          "label": {
+            "en": "Restarts",
+            "fr": "Redémarrages",
+            "de": "Neustarts",
+            "es": "Reinicios"
+          }
+        }
+      ]
+    },
+    {
+      "key": "cluster_unreachable",
+      "label": {
+        "en": "Cluster unreachable",
+        "fr": "Cluster injoignable",
+        "de": "Cluster nicht erreichbar",
+        "es": "Clúster inaccesible"
+      },
+      "description": {
+        "en": "The API server no longer answers (two reads in a row, 15 seconds apart).",
+        "fr": "Le serveur d'API ne répond plus (deux lectures de suite, à 15 secondes d'intervalle).",
+        "de": "Der API-Server antwortet nicht mehr (zwei Lesungen hintereinander, im Abstand von 15 Sekunden).",
+        "es": "El servidor de API ya no responde (dos lecturas seguidas, con 15 segundos de intervalo)."
+      },
+      "variables": [
+        {
+          "key": "cluster_name",
+          "type": "string",
+          "label": {
+            "en": "Cluster",
+            "fr": "Cluster",
+            "de": "Cluster",
+            "es": "Clúster"
+          }
+        },
+        {
+          "key": "error",
+          "type": "string",
+          "label": {
+            "en": "Reason",
+            "fr": "Raison",
+            "de": "Grund",
+            "es": "Motivo"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_cluster_status",
+      "label": {
+        "en": "State of the cluster",
+        "fr": "État du cluster",
+        "de": "Zustand des Clusters",
+        "es": "Estado del clúster"
       },
-      "timeout_seconds": 15,
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ],
+      "description": {
+        "en": "Reads the cluster for the next actions: nodes, pods, degraded workloads, and a ready-made summary.",
+        "fr": "Lit le cluster pour les actions suivantes : nœuds, pods, charges dégradées, et un résumé prêt à envoyer.",
+        "de": "Liest den Cluster für die nächsten Aktionen: Knoten, Pods, beeinträchtigte Workloads und eine fertige Zusammenfassung.",
+        "es": "Lee el clúster para las acciones siguientes: nodos, pods, cargas degradadas y un resumen listo para enviar."
+      },
+      "timeout_seconds": 30,
       "outputs": [
         {
-          "key": "signalled",
+          "key": "name",
+          "type": "string",
+          "label": {
+            "en": "Cluster name",
+            "fr": "Nom du cluster",
+            "de": "Name des Clusters",
+            "es": "Nombre del clúster"
+          }
+        },
+        {
+          "key": "online",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "Answers",
+            "fr": "Répond",
+            "de": "Antwortet",
+            "es": "Responde"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
+        },
+        {
+          "key": "version",
+          "type": "string",
+          "label": {
+            "en": "Version",
+            "fr": "Version",
+            "de": "Version",
+            "es": "Versión"
+          }
+        },
+        {
+          "key": "nodes_ready",
+          "type": "number",
+          "label": {
+            "en": "Nodes ready",
+            "fr": "Nœuds prêts",
+            "de": "Bereite Knoten",
+            "es": "Nodos listos"
+          }
+        },
+        {
+          "key": "nodes_total",
+          "type": "number",
+          "label": {
+            "en": "Nodes",
+            "fr": "Nœuds",
+            "de": "Knoten",
+            "es": "Nodos"
+          }
+        },
+        {
+          "key": "pods_running",
+          "type": "number",
+          "label": {
+            "en": "Pods running",
+            "fr": "Pods en marche",
+            "de": "Laufende Pods",
+            "es": "Pods en marcha"
+          }
+        },
+        {
+          "key": "pods_pending",
+          "type": "number",
+          "label": {
+            "en": "Pods pending",
+            "fr": "Pods en attente",
+            "de": "Wartende Pods",
+            "es": "Pods pendientes"
+          }
+        },
+        {
+          "key": "pods_failed",
+          "type": "number",
+          "label": {
+            "en": "Pods failed",
+            "fr": "Pods en échec",
+            "de": "Fehlerhafte Pods",
+            "es": "Pods con error"
+          }
+        },
+        {
+          "key": "pods_crash_looping",
+          "type": "number",
+          "label": {
+            "en": "Pods in CrashLoopBackOff",
+            "fr": "Pods en CrashLoopBackOff",
+            "de": "Pods in CrashLoopBackOff",
+            "es": "Pods en CrashLoopBackOff"
+          }
+        },
+        {
+          "key": "workloads_degraded",
+          "type": "number",
+          "label": {
+            "en": "Degraded workloads",
+            "fr": "Charges dégradées",
+            "de": "Beeinträchtigte Workloads",
+            "es": "Cargas degradadas"
+          }
         }
       ]
-    }
-  ],
-  "widgets": [
-    {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
-      },
-      "icon": "activity",
-      "action_timeout_seconds": 15
     }
   ]
 }

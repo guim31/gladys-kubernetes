@@ -1,0 +1,27 @@
+{
+  "kind": "DaemonSetList",
+  "apiVersion": "apps/v1",
+  "metadata": {
+    "resourceVersion": "677"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "agent",
+        "namespace": "lab",
+        "uid": "2fc70076-ba74-4d45-abea-ce5134b5694b",
+        "creationTimestamp": "2026-11-15T09:30:57Z"
+      },
+      "spec": {},
+      "status": {
+        "currentNumberScheduled": 1,
+        "numberMisscheduled": 0,
+        "desiredNumberScheduled": 1,
+        "numberReady": 1,
+        "observedGeneration": 1,
+        "updatedNumberScheduled": 1,
+        "numberAvailable": 1
+      }
+    }
+  ]
+}

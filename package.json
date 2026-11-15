@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-kubernetes",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Gladys Assistant integration for Kubernetes: nodes, pods and workloads of a k3s, k0s, MicroK8s or Talos cluster, read-only.",
   "type": "module",
   "main": "index.js",
   "scripts": {

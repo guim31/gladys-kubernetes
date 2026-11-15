@@ -1,77 +1,96 @@
+// The `cluster` widget: valid content (the core's own validator), Gladys
+// names, hidden blocks, offline and unconfigured states, the Refresh button.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { WIDGET_KEY } from '../src/hub.js';
+import { MAX_ROWS } from '../src/widgets.js';
+import { baseConfig, createDevices, createWorld, workloadId } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+async function world(t, options) {
+  const result = await createWorld(options);
+  t.after(() => result.app.stop());
+  return result;
+}
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
+const get = async (w, settings = {}, language = 'en') => {
+  const ack = await w.fake.widgetGet(WIDGET_KEY, { settings, language });
+  assert.equal(ack.success, true, ack.error);
+  assert.deepEqual(validateWidgetContent(ack.data.content), [], 'rendered as sent');
+  return ack.data.content.components;
+};
 
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
-
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
-    assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
-    assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
-    );
-  } finally {
-    simulateLanSession(true);
-  }
-});
-
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
+test('tiles first, then the problems, with the names given in Gladys', async (t) => {
+  const w = await world(t);
+  await createDevices(w);
+  const broken = workloadId(w.gladys, 'deployment', 'home', 'broken');
+  await w.fake.deviceUpdated({
+    ...w.fake.devices.find((device) => device.external_id === broken),
+    name: 'Broken app',
+  });
+  const components = await get(w);
+  assert.deepEqual(
+    components.map((c) => c.type),
+    ['text', 'value', 'value', 'value', 'value', 'status', 'button'],
   );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
+  assert.equal(components[0].text, 'Home lab');
+  assert.equal(components[1].value, '1/1');
+  const rows = components[5].items;
+  assert.deepEqual(rows[0], { label: 'Broken app', value: '0/1', icon: 'layers', color: 'danger' });
+  assert.ok(rows.some((row) => row.value === 'CrashLoopBackOff'));
 });
 
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
+test('the problems and the button can be hidden; a healthy cluster says so', async (t) => {
+  const w = await world(t);
+  const hidden = await get(w, { show_problems: false, show_refresh: false });
+  assert.deepEqual(
+    hidden.map((c) => c.type),
+    ['text', 'value', 'value', 'value', 'value'],
   );
+  w.kube.lists.pods.items = w.kube
+    .items('pods')
+    .filter((p) => p.status.containerStatuses?.every((c) => c.ready));
+  for (const name of ['broken', 'pending', 'badimage']) {
+    const ns = name === 'badimage' ? 'lab' : 'home';
+    const workload = w.kube.workload('deployment', ns, name);
+    workload.status.readyReplicas = workload.spec.replicas;
+  }
+  await w.hub.pollNow();
+  const status = (await get(w, {}, 'fr')).find((c) => c.type === 'status');
+  assert.deepEqual(status.items, [
+    { label: 'Tout va bien', value: 'v1.31.4+k3s1', icon: 'check-circle', color: 'success' },
+  ]);
 });
 
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('many problems: ten rows at most, the rest counted', async (t) => {
+  const w = await world(t);
+  const pods = w.kube.items('pods');
+  const crash = pods.find((p) => p.metadata.name.startsWith('broken'));
+  for (let i = 0; i < 12; i += 1) {
+    const pod = structuredClone(crash);
+    pod.metadata.uid = `uid-${i}`;
+    pod.metadata.name = `broken-${i}`;
+    pods.push(pod);
+  }
+  await w.hub.pollNow();
+  const status = (await get(w)).find((c) => c.type === 'status');
+  assert.equal(status.items.length, MAX_ROWS);
+  assert.equal(status.items.at(-1).label, 'Others');
+});
+
+test('offline, unconfigured, and the Refresh button', async (t) => {
+  const w = await world(t);
+  w.kube.failure = 'down';
+  await w.hub.pollNow();
+  const offline = await get(w, {}, 'de');
+  assert.equal(offline[1].text, 'Home lab: der API-Server antwortet nicht');
+  w.kube.failure = null;
+  const before = w.kube.requests.length;
+  const ack = await w.fake.widgetAction(WIDGET_KEY, 'refresh', {}, { settings: {} });
+  assert.equal(ack.success, true);
+  assert.ok(w.kube.requests.length > before);
+
+  const empty = await world(t, { config: baseConfig({ api_url: '' }) });
+  const [text] = await get(empty);
+  assert.match(text.text, /Enter the address/);
 });
