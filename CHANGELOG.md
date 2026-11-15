@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-15
+
 ### Added
 
 - The state of a Kubernetes cluster (k3s, k0s, MicroK8s, Talos, kubeadm…) in
@@ -30,4 +32,5 @@ the notes of the version's GitHub Release.
   the list of problems.
 - English, French, German and Spanish, in the interface and the documentation.
 
-[Unreleased]: https://github.com/guim31/gladys-kubernetes/commits/main
+[Unreleased]: https://github.com/guim31/gladys-kubernetes/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-kubernetes/releases/tag/v1.0.0
