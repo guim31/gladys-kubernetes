@@ -15,6 +15,9 @@ export const FAILING_REASONS = new Set([
   'CreateContainerConfigError',
   'CreateContainerError',
   'RunContainerError',
+  'ErrImageNeverPull',
+  'ImageInspectError',
+  'RegistryUnavailable',
 ]);
 
 export const CRASH_LOOP = 'CrashLoopBackOff';
@@ -202,7 +205,11 @@ export function parseSnapshot(read, now) {
           exitCode: status.lastState?.terminated?.exitCode ?? null,
           workload: podWorkload(pod),
         });
-      } else if (status.state?.running && status.ready) {
+      } else if (
+        (status.state?.running && status.ready) ||
+        status.state?.terminated?.reason === 'Completed'
+      ) {
+        // Running and ready, or an init container that finished its work.
         healthyContainers.push(id);
       }
     }

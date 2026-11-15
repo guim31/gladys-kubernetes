@@ -146,12 +146,16 @@ export class KubeClient {
     if (!version || typeof version.gitVersion !== 'string') {
       throw new KubeError(ERROR_KINDS.NOT_KUBERNETES, '/version: no gitVersion');
     }
-    const [nodes, pods, deployments, statefulsets, daemonsets, metrics] = await Promise.all([
-      this.get('/api/v1/nodes').then((list) => list.items ?? []),
-      this.list('/api/v1', 'pods'),
-      ...Object.values(WORKLOAD_PATHS).map((resource) => this.list('/apis/apps/v1', resource)),
-      this.get('/apis/metrics.k8s.io/v1beta1/nodes', { optional: true }),
-    ]);
+    // One list at a time: a large cluster's lists weigh megabytes each, and
+    // the sandbox has 256 MB.
+    const nodes = (await this.get('/api/v1/nodes')).items ?? [];
+    const pods = await this.list('/api/v1', 'pods');
+    const [deployments, statefulsets, daemonsets] = [
+      await this.list('/apis/apps/v1', WORKLOAD_PATHS[WORKLOAD_KINDS.DEPLOYMENT]),
+      await this.list('/apis/apps/v1', WORKLOAD_PATHS[WORKLOAD_KINDS.STATEFULSET]),
+      await this.list('/apis/apps/v1', WORKLOAD_PATHS[WORKLOAD_KINDS.DAEMONSET]),
+    ];
+    const metrics = await this.get('/apis/metrics.k8s.io/v1beta1/nodes', { optional: true });
     return {
       version,
       nodes,

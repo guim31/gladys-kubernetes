@@ -39,10 +39,16 @@ export const CONNECTION_TEXT = {
     es: 'Introduzca el token del ServiceAccount de solo lectura en la configuración.',
   },
   invalidUrl: {
-    en: 'Address not understood, e.g. 192.168.1.30 or https://k3s.lan:6443',
-    fr: 'Adresse incomprise, ex. 192.168.1.30 ou https://k3s.lan:6443',
-    de: 'Adresse nicht verstanden, z. B. 192.168.1.30 oder https://k3s.lan:6443',
-    es: 'Dirección no válida, p. ej. 192.168.1.30 o https://k3s.lan:6443',
+    en: 'Address not understood (https:// only), e.g. 192.168.1.30 or https://k3s.lan:6443',
+    fr: 'Adresse incomprise (https:// seulement), ex. 192.168.1.30 ou https://k3s.lan:6443',
+    de: 'Adresse nicht verstanden (nur https://), z. B. 192.168.1.30 oder https://k3s.lan:6443',
+    es: 'Dirección no válida (solo https://), p. ej. 192.168.1.30 o https://k3s.lan:6443',
+  },
+  invalidToken: {
+    en: 'Token not understood: paste it again, without spaces nor line breaks.',
+    fr: 'Jeton incompris : collez-le de nouveau, sans espaces ni retours à la ligne.',
+    de: 'Token nicht verstanden: Füge es erneut ein, ohne Leerzeichen und Zeilenumbrüche.',
+    es: 'Token no válido: péguelo de nuevo, sin espacios ni saltos de línea.',
   },
   invalidCa: {
     en: 'Authority certificate not understood: paste the PEM or certificate-authority-data.',

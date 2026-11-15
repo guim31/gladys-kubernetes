@@ -40,9 +40,10 @@ const NAMESPACE = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
  * Parse the API address typed by the user: a bare host or IP (`192.0.2.10`,
  * HTTPS and port 6443 added), `host:port`, or the `server:` line of a
  * kubeconfig (`https://192.0.2.10:6443`). A path is kept (Rancher proxies a
- * cluster under `/k8s/clusters/<id>`).
+ * cluster under `/k8s/clusters/<id>`). `http://` is refused: the token would
+ * travel in clear text.
  * @param {unknown} raw
- * @returns {string|null} `http(s)://host[:port][/path]`, null when unusable
+ * @returns {string|null} `https://host[:port][/path]`, null when unusable
  */
 export function parseApiUrl(raw) {
   if (typeof raw !== 'string') {
@@ -59,7 +60,8 @@ export function parseApiUrl(raw) {
   } catch {
     return null;
   }
-  if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) {
+  // HTTPS only: the token must never travel in clear text.
+  if (url.protocol !== 'https:' || !url.hostname) {
     return null;
   }
   // Credentials in the address would end up in the logs and the messages.
@@ -166,6 +168,10 @@ export function normalizeConfig(raw = {}) {
   }
   // A pasted token often carries a trailing new line or a "Bearer " prefix.
   const token = text('token').replace(/^bearer\s+/i, '');
+  // A JWT or a static token: visible ASCII only (an HTTP header refuses the rest).
+  if (token && !/^[\x21-\x7e]+$/.test(token)) {
+    problems.push('invalidToken');
+  }
   const ca = parseCaCertificate(source.ca_certificate);
   if (ca === false) {
     problems.push('invalidCa');
@@ -181,7 +187,7 @@ export function normalizeConfig(raw = {}) {
 
   return {
     url,
-    token,
+    token: problems.includes('invalidToken') ? '' : token,
     ca: ca || null,
     fingerprint: fingerprint || null,
     name: text('cluster_name').slice(0, MAX_NAME_LENGTH) || DEFAULT_CLUSTER_NAME,

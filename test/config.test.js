@@ -20,8 +20,15 @@ test('the API address: bare host, host:port, kubeconfig line, Rancher path', () 
     parseApiUrl('https://rancher.example.com/k8s/clusters/c-m-abc'),
     'https://rancher.example.com/k8s/clusters/c-m-abc',
   );
-  assert.equal(parseApiUrl('http://127.0.0.1:8001'), 'http://127.0.0.1:8001');
-  for (const bad of ['', 'ftp://x', 'https://user:pw@host', 'https://h/?token=x', 42, null]) {
+  for (const bad of [
+    '',
+    'http://192.0.2.10:6443',
+    'ftp://x',
+    'https://user:pw@host',
+    'https://h/?token=x',
+    42,
+    null,
+  ]) {
     assert.equal(parseApiUrl(bad), null, String(bad));
   }
 });
@@ -81,6 +88,9 @@ test('normalizeConfig: defaults, problems, a pasted "Bearer" token', () => {
     cluster_name: '  Home lab ',
   });
   assert.equal(config.token, 'abc');
+  const spaced = normalizeConfig({ token: 'abc def' });
+  assert.equal(spaced.token, '');
+  assert.deepEqual(spaced.problems, ['invalidToken']);
   assert.equal(config.name, 'Home lab');
   assert.equal(config.pollIntervalMs, 60_000);
   assert.equal(config.language, 'fr');

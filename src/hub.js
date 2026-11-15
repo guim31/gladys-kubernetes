@@ -50,6 +50,8 @@ export const HUB_TIMINGS = {
   heartbeatMs: 6 * 3600_000,
   // The scene action reads the cluster again when the last read is older.
   freshMs: 15_000,
+  // A whole read (a dozen requests at most) gives up after this long.
+  readTimeoutMs: 120_000,
 };
 
 const MAX_TRANSPORTS_PER_REQUEST = 100;
@@ -126,9 +128,14 @@ export class KubeHub {
   async reconfigure(config) {
     const languageChanged = this.config?.language !== config.language;
     const nameChanged = this.config?.name !== config.name;
-    this.config = config;
     const next = signature(config);
     if (next !== this.signature) {
+      // Another cluster: its problems are recorded at the first read, not
+      // announced as new ones.
+      if (this.config && this.signature && this.urlOf(this.signature) !== config.url) {
+        this.watcher = new Watcher({}, this.alertTimings);
+        this.store.save(this.watcher.saved);
+      }
       this.signature = next;
       // A read in progress belongs to the previous configuration: ignored.
       this.generation += 1;
@@ -147,11 +154,20 @@ export class KubeHub {
             })
           : null;
     }
+    this.config = config;
     if (languageChanged || nameChanged) {
       this.discovered = null;
     }
-    await this.pollNow({ publish: true });
-    this.schedulePoll();
+    try {
+      await this.pollNow({ publish: true });
+    } finally {
+      // Even after an unexpected failure: the readings must go on.
+      this.schedulePoll();
+    }
+  }
+
+  urlOf(signatureText) {
+    return JSON.parse(signatureText)[0];
   }
 
   async stop() {
@@ -233,13 +249,23 @@ export class KubeHub {
 
   async read(generation) {
     let raw;
+    let timer;
     try {
-      raw = await this.client.read();
+      // A deadline on the whole read, beyond the one of each request.
+      const deadline = new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new KubeError(ERROR_KINDS.UNREACHABLE, 'Read timed out')),
+          this.timings.readTimeoutMs,
+        );
+      });
+      raw = await Promise.race([this.client.read(), deadline]);
     } catch (err) {
       if (!(err instanceof KubeError)) {
         throw err;
       }
       return generation === this.generation ? this.applyFailure(err) : false;
+    } finally {
+      clearTimeout(timer);
     }
     return generation === this.generation ? this.applySuccess(raw) : false;
   }
@@ -266,10 +292,17 @@ export class KubeHub {
     clearTimeout(this.retryTimer);
 
     const found = this.watcher.apply(snapshot, now);
+    this.watcher.unreachable = false;
+    // An event Gladys refused is announced again at the next read.
+    const announce = async (kind, entry, key, data) => {
+      if (!(await this.fireEvent(key, data))) {
+        this.watcher.retry(kind, entry);
+      }
+    };
     for (const node of found.nodes) {
       logger.debug(`Node ${node.name} not ready (${node.reason})`);
       widgetChanged = true;
-      await this.fireEvent(TRIGGERS.NODE, {
+      await announce('nodes', node, TRIGGERS.NODE, {
         node: deviceIds(this.gladys, DEVICE_TYPES.NODE, itemKey(node.name)).device,
         node_name: node.name,
         reason: node.reason ?? 'Unknown',
@@ -278,7 +311,7 @@ export class KubeHub {
     for (const workload of found.workloads) {
       logger.debug(`${workload.kind} ${workload.namespace}/${workload.name} degraded`);
       widgetChanged = true;
-      await this.fireEvent(TRIGGERS.WORKLOAD, {
+      await announce('workloads', workload, TRIGGERS.WORKLOAD, {
         workload: this.workloadDevice(workload),
         workload_name: workload.name,
         namespace: workload.namespace,
@@ -290,7 +323,7 @@ export class KubeHub {
     for (const crash of found.crashes) {
       logger.debug(`${crash.namespace}/${crash.pod} ${crash.container}: CrashLoopBackOff`);
       widgetChanged = true;
-      await this.fireEvent(TRIGGERS.CRASH, {
+      await announce('crashes', crash, TRIGGERS.CRASH, {
         workload: crash.workload
           ? this.workloadDevice({ ...crash.workload, namespace: crash.namespace })
           : null,
@@ -326,21 +359,33 @@ export class KubeHub {
     }
     if (!this.down && this.failures >= this.timings.downAfterFailures) {
       this.down = true;
-      await this.fireEvent(TRIGGERS.UNREACHABLE, {
-        cluster_name: this.config.name,
-        error: errorText(err, this.config.language),
-      });
+      // Already announced before a restart of the integration: not again.
+      if (!this.watcher.unreachable) {
+        const fired = await this.fireEvent(TRIGGERS.UNREACHABLE, {
+          cluster_name: this.config.name,
+          error: errorText(err, this.config.language),
+        });
+        if (fired) {
+          this.watcher.unreachable = true;
+          this.store.save(this.watcher.saved);
+        } else {
+          this.down = false; // announced at the next failed read
+        }
+      }
       return true;
     }
     return wasError !== err.kind;
   }
 
+  /** @returns {Promise<boolean>} whether Gladys accepted the event */
   async fireEvent(key, data) {
     try {
       await this.gladys.publishSceneEvent(key, data);
       this.issues.ok('scene', 'Scene events accepted again');
+      return true;
     } catch (err) {
       this.issues.fail('scene', 'warn', `Scene event ${key} refused: ${err.message}`);
+      return false;
     }
   }
 

@@ -240,8 +240,14 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
   HTTP request to an HTTPS server »). Et `http.request` refuse une URL `https:` : passer des options.
   `test/http.test.js` le fige contre un vrai serveur TLS local.
 - **Empreinte affichée** : celle du **dernier certificat de la chaîne envoyée** — l'autorité chez k3s (qui envoie
-  serveur + CA), donc stable au renouvellement annuel du certificat serveur. L'épinglage accepte n'importe quel
-  certificat de la chaîne.
+  serveur + CA), donc stable au renouvellement annuel du certificat serveur. **Épinglage** : le certificat serveur
+  lui-même, ou un émetteur relié **signature par signature** (`checkIssued` + `verify`). Node construit
+  `issuerCertificate` par le seul nom : un faux serveur qui recopie l'autorité publique dans sa chaîne passait la
+  première version (relecture du 15/11, `test/http.test.js` le fige).
+- **Délais** : `timeout` de `http.request` ne joue pas sur une socket fournie par `createConnection` ; un serveur
+  qui accepte puis se tait figeait tout le hub (lecture partagée jamais résolue, minuteur jamais réarmé). D'où un
+  délai global par requête et un par lecture (`readTimeoutMs`), et `schedulePoll` dans un `finally`.
+- **HTTPS seulement** : `http://` refusé à la configuration (le jeton partirait en clair).
 - **Champ d'une ligne** : un PEM collé dans un `string` perd ses retours à la ligne (espaces ou rien selon le
   navigateur) ; `parseCaCertificate` reconstruit le PEM, accepte aussi `certificate-authority-data` (le PEM en
   base64) et un DER en base64.
@@ -253,7 +259,9 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 - **Déclencheurs** : nœud pas prêt sur deux lectures ; charge dégradée depuis 3 min et deux lectures (une mise à
   jour progressive se rétablit avant) ; CrashLoopBackOff annoncé une fois par conteneur (uid du pod + nom),
   réarmé après 10 min en marche et prêt (délai après lequel le kubelet remet son back-off à zéro). Premier
-  passage sans état sauvegardé : noté, pas annoncé.
+  passage sans état sauvegardé : noté, pas annoncé. Un événement refusé par Gladys est réessayé à la lecture
+  suivante ; « cluster injoignable » est mémorisé dans `/data` (pas de doublon après un redémarrage) ; une autre
+  adresse de cluster repart d'un état vierge.
 - **Disque de l'hôte** : sur une machine de test au disque plein à 97 %, k3s démarre en `DiskPressure` et évince tout ; pour les
   tests, `--kubelet-arg=eviction-hard=imagefs.available<1%,nodefs.available<1%`.
 

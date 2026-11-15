@@ -274,3 +274,63 @@ test('a node added before metrics-server: no state for its missing features', as
     'proposed with CPU and memory: "Update" in the Discovery tab',
   );
 });
+
+test('an event Gladys refused is announced again at the next read', async (t) => {
+  const w = await world(t);
+  const publish = w.gladys.publishSceneEvent.bind(w.gladys);
+  let refuse = true;
+  t.mock.method(w.gladys, 'publishSceneEvent', async (...args) => {
+    if (refuse) {
+      throw new Error('Gladys is away');
+    }
+    return publish(...args);
+  });
+  w.kube.setNodeReady(NODE, false);
+  await w.hub.pollNow();
+  await w.hub.pollNow();
+  assert.equal(events(w, 'node_not_ready').length, 0);
+  refuse = false;
+  await w.hub.pollNow();
+  assert.equal(events(w, 'node_not_ready').length, 1);
+  await w.hub.pollNow();
+  assert.equal(events(w, 'node_not_ready').length, 1);
+});
+
+test('cluster unreachable: not announced twice across a restart', async (t) => {
+  const first = await createWorld();
+  first.kube.failure = 'down';
+  await first.hub.pollNow();
+  await first.hub.pollNow();
+  assert.equal(events(first, 'cluster_unreachable').length, 1);
+  await first.app.stop();
+  const second = await createWorld({ kube: first.kube, dataDir: first.dataDir });
+  t.after(() => second.app.stop());
+  await second.hub.pollNow();
+  await second.hub.pollNow();
+  assert.equal(events(second, 'cluster_unreachable').length, 0);
+  first.kube.failure = null;
+  await second.hub.pollNow();
+  first.kube.failure = 'down';
+  await second.hub.pollNow();
+  await second.hub.pollNow();
+  assert.equal(events(second, 'cluster_unreachable').length, 1, 'a new outage is announced');
+});
+
+test('another cluster address: its existing problems are only recorded', async (t) => {
+  const w = await world(t);
+  const other = new FakeKube();
+  other.setNodeReady(NODE, false);
+  w.hub.request = other.request; // the next client reads the other cluster
+  await w.fake.configUpdated(baseConfig({ api_url: 'https://198.51.100.7:6443' }));
+  await w.hub.pollNow();
+  await w.hub.pollNow();
+  assert.equal(events(w, 'node_not_ready').length, 0);
+});
+
+test('a read that never ends gives up and counts as a failure', async (t) => {
+  const w = await world(t, { timings: { readTimeoutMs: 50 } });
+  w.hub.client.request = () => new Promise(() => {});
+  await w.hub.pollNow();
+  assert.equal(w.hub.error.kind, 'unreachable');
+  assert.equal(w.fake.connectionStatus.connected, false);
+});

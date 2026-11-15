@@ -34,6 +34,19 @@ export class Watcher {
     this.nodeState = { ...saved.nodes };
     this.workloadState = { ...saved.workloads };
     this.crashState = { ...saved.crashes };
+    // The cluster announced unreachable: not announced again after a restart.
+    this.unreachable = saved.unreachable === true;
+  }
+
+  /** Gladys refused the event of a transition: announce it at the next read. */
+  retry(kind, entry) {
+    if (kind === 'nodes' && this.nodeState[entry.name]) {
+      this.nodeState[entry.name].announced = false;
+    } else if (kind === 'workloads' && this.workloadState[workloadId(entry)]) {
+      this.workloadState[workloadId(entry)].announced = false;
+    } else if (kind === 'crashes') {
+      delete this.crashState[containerId(entry)];
+    }
   }
 
   /** What to save under /data. */
@@ -43,6 +56,7 @@ export class Watcher {
       nodes: this.nodeState,
       workloads: this.workloadState,
       crashes: this.crashState,
+      unreachable: this.unreachable,
     };
   }
 
