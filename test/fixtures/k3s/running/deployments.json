@@ -1,0 +1,270 @@
+{
+  "kind": "DeploymentList",
+  "apiVersion": "apps/v1",
+  "metadata": {
+    "resourceVersion": "677"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "broken",
+        "namespace": "home",
+        "uid": "aec1fca4-4abe-42c5-ab9c-9273d3d648fe",
+        "creationTimestamp": "2026-11-15T09:30:57Z"
+      },
+      "spec": {
+        "replicas": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:31:00Z",
+            "lastTransitionTime": "2026-11-15T09:30:57Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"broken-74d7ff7d46\" has successfully progressed."
+          },
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2026-11-15T09:31:42Z",
+            "lastTransitionTime": "2026-11-15T09:31:42Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "pending",
+        "namespace": "home",
+        "uid": "7700a591-0392-46ed-be5d-26b6642479fd",
+        "creationTimestamp": "2026-11-15T09:30:57Z"
+      },
+      "spec": {
+        "replicas": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2026-11-15T09:30:57Z",
+            "lastTransitionTime": "2026-11-15T09:30:57Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:57Z",
+            "lastTransitionTime": "2026-11-15T09:30:57Z",
+            "reason": "ReplicaSetUpdated",
+            "message": "ReplicaSet \"pending-6c54b5ccc\" is progressing."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "web",
+        "namespace": "home",
+        "uid": "990f2c04-c6cf-4ed2-bae8-da3a684475a2",
+        "creationTimestamp": "2026-11-15T09:30:57Z"
+      },
+      "spec": {
+        "replicas": 2
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 2,
+        "updatedReplicas": 2,
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:31:01Z",
+            "lastTransitionTime": "2026-11-15T09:31:01Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:31:01Z",
+            "lastTransitionTime": "2026-11-15T09:30:57Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"web-754f9c55d9\" has successfully progressed."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "coredns",
+        "namespace": "kube-system",
+        "uid": "e5944004-b9c5-419f-bbbb-1ba867f895f4",
+        "creationTimestamp": "2026-11-15T09:30:18Z",
+        "labels": {
+          "k8s-app": "kube-dns",
+          "kubernetes.io/name": "CoreDNS",
+          "objectset.rio.cattle.io/hash": "bce283298811743a0386ab510f2f67ef74240c57"
+        }
+      },
+      "spec": {
+        "replicas": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:22Z",
+            "lastTransitionTime": "2026-11-15T09:30:22Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:35Z",
+            "lastTransitionTime": "2026-11-15T09:30:22Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"coredns-ccb96694c\" has successfully progressed."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "local-path-provisioner",
+        "namespace": "kube-system",
+        "uid": "f0c0d6e6-195e-4c5f-a41b-0e03c30ecdfb",
+        "creationTimestamp": "2026-11-15T09:30:18Z",
+        "labels": {
+          "objectset.rio.cattle.io/hash": "183f35c65ffbc3064603f43f1580d8c68a2dabd4"
+        }
+      },
+      "spec": {
+        "replicas": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:22Z",
+            "lastTransitionTime": "2026-11-15T09:30:22Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:32Z",
+            "lastTransitionTime": "2026-11-15T09:30:22Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"local-path-provisioner-5cf85fd84d\" has successfully progressed."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "metrics-server",
+        "namespace": "kube-system",
+        "uid": "145a980f-f521-42de-b6cf-3e2cbf5b0778",
+        "creationTimestamp": "2026-11-15T09:30:19Z",
+        "labels": {
+          "k8s-app": "metrics-server",
+          "objectset.rio.cattle.io/hash": "e10e245e13e46a725c9dddd4f9eb239f147774fd"
+        }
+      },
+      "spec": {
+        "replicas": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:22Z",
+            "lastTransitionTime": "2026-11-15T09:30:22Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:50Z",
+            "lastTransitionTime": "2026-11-15T09:30:22Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"metrics-server-5985cbc9d7\" has successfully progressed."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "badimage",
+        "namespace": "lab",
+        "uid": "4f96bb7b-180a-4ed2-bb45-6ac2cb29388b",
+        "creationTimestamp": "2026-11-15T09:30:57Z"
+      },
+      "spec": {
+        "replicas": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2026-11-15T09:30:57Z",
+            "lastTransitionTime": "2026-11-15T09:30:57Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2026-11-15T09:30:58Z",
+            "lastTransitionTime": "2026-11-15T09:30:57Z",
+            "reason": "ReplicaSetUpdated",
+            "message": "ReplicaSet \"badimage-7ddc498f57\" is progressing."
+          }
+        ]
+      }
+    }
+  ]
+}

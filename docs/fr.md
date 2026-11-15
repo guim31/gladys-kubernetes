@@ -1,67 +1,244 @@
-# Template de démonstration
+# Kubernetes
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Cette intégration amène l'état de votre **cluster Kubernetes** dans Gladys —
+k3s, k0s, MicroK8s, Talos, kubeadm, un cluster de Raspberry Pi ou un serveur
+domestique à un seul nœud : le cluster lui-même, un appareil par nœud et un
+par Deployment, StatefulSet et DaemonSet de votre choix. Les scènes peuvent
+réagir quand un nœud n'est plus prêt, qu'une charge est dégradée, qu'un pod
+est en CrashLoopBackOff ou que le serveur d'API ne répond plus, et un widget
+résume le cluster sur le tableau de bord.
 
-## Ce que vous obtenez
+Elle ne fait que **lire** : un ServiceAccount avec un rôle en lecture seule
+suffit, et Gladys ne modifie jamais rien dans le cluster. Tout reste sur votre
+réseau local.
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+Testée contre un vrai cluster k3s v1.31.4 (Docker) : un Deployment sain, un
+qui plante, un pod impossible à placer, une image qui n'existe pas, un
+StatefulSet, un DaemonSet, des espaces de noms filtrés, un mauvais jeton, un
+serveur arrêté et un nœud en pression disque. Pas encore avec une vraie
+instance Gladys ni sur toutes les distributions : vos retours sont les
+bienvenus sur [les issues](https://github.com/guim31/gladys-kubernetes/issues).
 
-## Configuration
+## Ce qu'il vous faut
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+- Gladys Assistant 5.1.0 ou plus récent.
+- Un cluster Kubernetes dont le serveur d'API (port 6443 par défaut) est
+  joignable depuis la machine de Gladys.
+- `kubectl` avec les droits d'administrateur, une fois, pour créer le compte en
+  lecture seule.
+- Facultatif : metrics-server (installé d'office avec k3s) pour le processeur
+  et la mémoire des nœuds.
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+## Mise en route
 
-## Actions
+### 1. Créer un compte en lecture seule
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+Enregistrez ce fichier sous `gladys-reader.yaml`, puis lancez
+`kubectl apply -f gladys-reader.yaml`. Il crée un espace de noms `gladys`, un
+ServiceAccount `gladys-reader`, un rôle qui ne peut que lire (get, list, watch)
+les nœuds, pods, espaces de noms, Deployments, StatefulSets, DaemonSets et les
+métriques des nœuds, et un jeton durable.
 
-## Scènes
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gladys
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gladys-reader
+  namespace: gladys
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gladys-reader
+rules:
+  - apiGroups: ['']
+    resources: ['nodes', 'pods', 'namespaces']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['apps']
+    resources: ['deployments', 'statefulsets', 'daemonsets']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['metrics.k8s.io']
+    resources: ['nodes']
+    verbs: ['get', 'list']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gladys-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gladys-reader
+subjects:
+  - kind: ServiceAccount
+    name: gladys-reader
+    namespace: gladys
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gladys-reader-token
+  namespace: gladys
+  annotations:
+    kubernetes.io/service-account.name: gladys-reader
+type: kubernetes.io/service-account-token
+```
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+Affichez ensuite le jeton :
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+```sh
+kubectl -n gladys get secret gladys-reader-token -o jsonpath='{.data.token}' | base64 -d
+```
+
+### 2. Configurer l'intégration
+
+Dans Gladys, **Intégrations → Kubernetes → Configuration** :
+
+- **Adresse du serveur d'API** : la ligne `server:` de votre kubeconfig, par
+  exemple `https://192.168.1.30:6443`. Une IP seule reçoit `https://` et le
+  port 6443.
+- **Jeton du ServiceAccount** : le jeton affiché plus haut.
+- **Faire confiance au certificat** : le cluster signe son propre certificat.
+  Soit vous collez l'**autorité du cluster** — la valeur de
+  `certificate-authority-data` de votre kubeconfig, ou le contenu du fichier
+  `ca.crt`, tel quel —, soit vous laissez vide et cliquez sur **Tester la
+  connexion** : le message affiche l'empreinte SHA-256 envoyée par le serveur.
+  Vérifiez-la, puis collez-la dans **Empreinte du certificat**. Tant qu'aucun
+  des deux n'est rempli, le jeton n'est jamais envoyé.
+- **Espaces de noms** (facultatif) : `home, media` pour ne suivre que ceux-là.
+  Vide : tous les espaces de noms.
+- **Nom du cluster**, **Intervalle de rafraîchissement** (1 minute par défaut)
+  et **Langue des noms**.
+
+Pour vérifier une empreinte, sur une machine qui a votre kubeconfig :
+
+```sh
+kubectl config view --raw --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d | openssl x509 -noout -fingerprint -sha256
+```
+
+Sur un serveur k3s : `openssl x509 -in /var/lib/rancher/k3s/server/tls/server-ca.crt -noout -fingerprint -sha256`.
+
+### 3. Ajouter les appareils
+
+Dans l'onglet **Découverte**, ajoutez le cluster, les nœuds et les charges à
+suivre. Les autres ne sont pas envoyés à Gladys, mais les déclencheurs et le
+widget les surveillent quand même.
+
+## Les appareils
+
+### Le cluster
+
+| Fonctionnalité           | Signification                                                      |
+| ------------------------ | ------------------------------------------------------------------ |
+| Joignable                | 1 tant que le serveur d'API répond, 0 dès qu'il se tait            |
+| Version                  | la version de Kubernetes, par exemple `v1.31.4+k3s1`               |
+| Nœuds prêts              | les nœuds dont la condition `Ready` est vraie                      |
+| Nœuds                    | tous les nœuds                                                     |
+| Pods en marche           | les pods en phase `Running`                                        |
+| Pods en attente          | les pods qui attendent d'être placés ou lancés                     |
+| Pods en échec            | les pods `Failed` et ceux bloqués sur une erreur (image, plantage) |
+| Pods en CrashLoopBackOff | les pods dont un conteneur plante sans cesse                       |
+| Pods redémarrés (1 h)    | les pods dont un conteneur s'est arrêté dans l'heure               |
+| Charges dégradées        | les charges qui ont moins de réplicas prêts que voulu              |
+
+Les pods et charges comptés sont ceux des espaces de noms choisis ; les pods
+terminés (Jobs) sont laissés de côté.
+
+### Les nœuds
+
+Prêt, Pression mémoire et Pression disque (1 = oui). Avec metrics-server,
+aussi Processeur et Mémoire, en pourcentage de ce que le nœud peut donner aux
+pods. Un nœud ajouté avant l'installation de metrics-server les reçoit par
+**Mettre à jour** dans l'onglet Découverte.
+
+### Deployments, StatefulSets et DaemonSets
+
+Réplicas prêts, Réplicas voulus, et En bonne santé (1 quand tous les réplicas
+voulus sont prêts). Une charge réduite à zéro est en bonne santé.
 
 ## Tableau de bord
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+Le widget **Cluster Kubernetes** affiche quatre tuiles — nœuds prêts, pods en
+marche, pods en échec, charges dégradées — puis les problèmes : nœuds pas
+prêts ou sous pression, charges dégradées avec leurs réplicas, pods en
+CrashLoopBackOff, ou une ligne verte quand tout va bien. Ses réglages masquent
+la liste des problèmes et le bouton **Actualiser**.
+
+## Scènes
+
+### Déclencheurs
+
+- **Nœud pas prêt** : un nœud n'est plus prêt deux lectures de suite. Filtre :
+  un nœud, ou tous. Variables : nœud, raison (par exemple
+  `NodeStatusUnknown`).
+- **Charge dégradée** : un Deployment, StatefulSet ou DaemonSet a moins de
+  réplicas prêts que voulu depuis 3 minutes (une mise à jour progressive se
+  rétablit avant). Filtre : une charge. Variables : nom, espace de noms, type,
+  réplicas prêts et voulus.
+- **Pod en CrashLoopBackOff** : un conteneur plante sans cesse. Annoncé une
+  fois, et de nouveau seulement après 10 minutes sans planter. Filtre : la
+  charge du pod. Variables : pod, conteneur, espace de noms, charge,
+  redémarrages.
+- **Cluster injoignable** : le serveur d'API ne répond plus, deux lectures à
+  15 secondes d'intervalle. Variables : cluster, raison.
+
+Ce qui va déjà mal au tout premier démarrage de l'intégration est seulement
+noté, pas annoncé. L'intégration se souvient de ce qu'elle a annoncé d'un
+redémarrage à l'autre.
+
+### Actions
+
+- **État du cluster** : lit le cluster (de nouveau si la dernière lecture date
+  de plus de 15 secondes) et donne aux actions suivantes un résumé prêt à
+  envoyer — « Home lab : nœuds prêts : 3/3, pods en marche : 42, dégradés : web
+  (home) » — et chaque chiffre : version, nœuds, pods en marche, en attente, en
+  échec, en CrashLoopBackOff, charges dégradées. Un cluster muet n'est pas une
+  erreur : « Répond » est faux et le résumé dit pourquoi.
+
+### Idées de scènes
+
+- **Point du matin** : chaque jour à 8 h, État du cluster → envoyer le résumé
+  sur Telegram.
+- **Serveur perdu** : Cluster injoignable ou Nœud pas prêt → envoyer un
+  message, faire clignoter une lampe.
+- **Mise à jour ratée** : Pod en CrashLoopBackOff sur le Deployment de votre
+  domotique → envoyer un message avec le pod et ses redémarrages.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« certificat non reconnu »** : collez l'autorité du cluster, ou vérifiez
+  puis collez l'empreinte affichée par le message. Après une réinstallation du
+  cluster, son autorité a changé : collez la nouvelle.
+- **« jeton refusé »** : le jeton est incomplet, ou appartient à un autre
+  cluster. Affichez-le de nouveau avec la commande de l'étape 1.
+- **« accès refusé »** : le rôle de l'étape 1 manque ou a été modifié ;
+  appliquez de nouveau le fichier.
+- **« le serveur d'API ne répond pas »** : vérifiez l'adresse et le port, et
+  qu'un pare-feu laisse la machine de Gladys joindre le port 6443.
+- **« aucune API Kubernetes à cette adresse »** : un autre service y répond
+  (l'interface de Rancher, un tableau de bord).
+- **Ni processeur ni mémoire sur les nœuds** : metrics-server n'est pas
+  installé, ou pas encore démarré ; **Tester la connexion** le signale.
+- **Tester la connexion signale des « espaces de noms inconnus »** : un nom
+  d'espace de noms est mal orthographié.
+
+## Limites
+
+- Lecture seule : l'intégration ne lance, n'arrête et ne redimensionne jamais
+  rien.
+- Un cluster par installation de l'intégration.
+- Les pods sont comptés, pas proposés un par un : ils vont et viennent à
+  chaque mise à jour. Jobs, CronJobs et pods isolés sont comptés mais n'ont pas
+  d'appareil.
+- Le processeur et la mémoire des nœuds demandent metrics-server.
+- Les valeurs des appareils non ajoutés ne sont pas envoyées à Gladys ; les
+  déclencheurs et le widget s'en servent quand même.
+- Un grand cluster (des milliers de pods) est lu en entier à chaque
+  intervalle : choisissez un intervalle plus long, ou les espaces de noms à
+  suivre.
+- Sans lien avec le projet Kubernetes ni la Cloud Native Computing Foundation.

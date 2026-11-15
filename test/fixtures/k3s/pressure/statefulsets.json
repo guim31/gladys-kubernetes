@@ -1,0 +1,30 @@
+{
+  "kind": "StatefulSetList",
+  "apiVersion": "apps/v1",
+  "metadata": {
+    "resourceVersion": "691"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "db",
+        "namespace": "home",
+        "uid": "c0e8755e-38bd-4e77-af14-86c172223fb5",
+        "creationTimestamp": "2026-11-15T09:28:03Z"
+      },
+      "spec": {
+        "replicas": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "currentReplicas": 1,
+        "updatedReplicas": 1,
+        "currentRevision": "db-7dd5dc7879",
+        "updateRevision": "db-7dd5dc7879",
+        "collisionCount": 0,
+        "availableReplicas": 0
+      }
+    }
+  ]
+}

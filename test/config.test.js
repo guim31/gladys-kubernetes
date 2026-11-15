@@ -1,33 +1,93 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConfig, DEFAULT_CONFIG } from '../src/config.js';
+import { readFileSync } from 'node:fs';
+import {
+  DEFAULT_CONFIG,
+  normalizeConfig,
+  parseApiUrl,
+  parseCaCertificate,
+  parseFingerprint,
+  parseNamespaces,
+} from '../src/config.js';
 
-test('normalizeConfig returns the defaults when called with no argument', () => {
-  assert.deepEqual(normalizeConfig(), DEFAULT_CONFIG);
+const CERT = readFileSync(new URL('./fixtures/tls/cert.pem', import.meta.url), 'utf8');
+
+test('the API address: bare host, host:port, kubeconfig line, Rancher path', () => {
+  assert.equal(parseApiUrl('192.0.2.10'), 'https://192.0.2.10:6443');
+  assert.equal(parseApiUrl(' k3s.lan:16443 '), 'https://k3s.lan:16443');
+  assert.equal(parseApiUrl('https://192.0.2.10:6443/'), 'https://192.0.2.10:6443');
+  assert.equal(
+    parseApiUrl('https://rancher.example.com/k8s/clusters/c-m-abc'),
+    'https://rancher.example.com/k8s/clusters/c-m-abc',
+  );
+  assert.equal(parseApiUrl('http://127.0.0.1:8001'), 'http://127.0.0.1:8001');
+  for (const bad of ['', 'ftp://x', 'https://user:pw@host', 'https://h/?token=x', 42, null]) {
+    assert.equal(parseApiUrl(bad), null, String(bad));
+  }
 });
 
-test('normalizeConfig keeps user values over the defaults', () => {
-  const config = normalizeConfig({ latitude: 45.5, longitude: -73.6, unit: 'fahrenheit' });
-  assert.equal(config.latitude, 45.5);
-  assert.equal(config.longitude, -73.6);
-  assert.equal(config.unit, 'fahrenheit');
+test('the authority: PEM, PEM without line breaks, kubeconfig base64, DER base64', () => {
+  const expected = parseCaCertificate(CERT);
+  assert.match(expected, /^-----BEGIN CERTIFICATE-----\n/);
+  assert.equal(parseCaCertificate(CERT.replace(/\n/g, ' ')), expected);
+  assert.equal(parseCaCertificate(CERT.replace(/\n/g, '')), expected);
+  assert.equal(parseCaCertificate(Buffer.from(CERT).toString('base64')), expected);
+  const der = CERT.replace(/-----[A-Z ]+-----|\s/g, '');
+  assert.equal(parseCaCertificate(der), expected);
+  assert.equal(parseCaCertificate(''), null);
+  assert.equal(parseCaCertificate('not a certificate!'), false);
+  assert.equal(
+    parseCaCertificate('-----BEGIN CERTIFICATE-----AAAA-----END CERTIFICATE-----'),
+    false,
+  );
 });
 
-test('normalizeConfig coerces numeric strings coming from a form', () => {
-  const config = normalizeConfig({ latitude: '48.8', longitude: '2.3', poll_frequency: '600' });
-  assert.equal(config.latitude, 48.8);
-  assert.equal(config.longitude, 2.3);
-  assert.equal(config.poll_frequency, 600);
-  assert.equal(typeof config.poll_frequency, 'number');
+test('the fingerprint: the forms people copy', () => {
+  const fp =
+    'CF:18:97:1A:6E:34:6C:CE:55:1C:A8:C5:DA:22:F1:86:5E:84:04:FE:2F:32:40:8A:55:35:F6:D6:72:16:0A:94';
+  assert.equal(parseFingerprint(fp), fp);
+  assert.equal(parseFingerprint(fp.toLowerCase().replace(/:/g, '')), fp);
+  assert.equal(parseFingerprint(`sha256 Fingerprint=${fp}`), fp);
+  assert.equal(parseFingerprint(`SHA256:${fp.replace(/:/g, ' ')}`), fp);
+  assert.equal(parseFingerprint(''), null);
+  assert.equal(parseFingerprint('AB:CD'), false);
 });
 
-test('normalizeConfig falls back to the default for a missing numeric field', () => {
-  const config = normalizeConfig({ unit: 'celsius' });
-  assert.equal(config.poll_frequency, DEFAULT_CONFIG.poll_frequency);
+test('the namespaces: commas, spaces, upper case; invalid names apart', () => {
+  assert.deepEqual(parseNamespaces('home, Media;home  lab'), {
+    namespaces: ['home', 'lab', 'media'],
+    invalid: [],
+  });
+  assert.deepEqual(parseNamespaces('ok, bad_name').invalid, ['bad_name']);
+  assert.deepEqual(parseNamespaces(undefined).namespaces, []);
 });
 
-test('GLADYS_PREFER_LOCAL defaults to true and only an explicit false disables it', () => {
-  assert.equal(normalizeConfig().GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: true }).GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: false }).GLADYS_PREFER_LOCAL, false);
+test('normalizeConfig: defaults, problems, a pasted "Bearer" token', () => {
+  const empty = normalizeConfig({});
+  assert.equal(empty.url, null);
+  assert.equal(empty.pollIntervalMs, Number(DEFAULT_CONFIG.poll_interval) * 1000);
+  assert.equal(empty.language, 'fr');
+  assert.equal(empty.name, 'Kubernetes');
+  assert.deepEqual(empty.problems, []);
+
+  const config = normalizeConfig({
+    api_url: 'https://:bad',
+    token: 'Bearer abc\n',
+    ca_certificate: 'nope!',
+    certificate_fingerprint: '12',
+    namespaces: 'a_b',
+    poll_interval: '7',
+    language: 'it',
+    cluster_name: '  Home lab ',
+  });
+  assert.equal(config.token, 'abc');
+  assert.equal(config.name, 'Home lab');
+  assert.equal(config.pollIntervalMs, 60_000);
+  assert.equal(config.language, 'fr');
+  assert.deepEqual(config.problems, [
+    'invalidUrl',
+    'invalidCa',
+    'invalidFingerprint',
+    'invalidNamespace',
+  ]);
 });

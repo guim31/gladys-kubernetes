@@ -1,41 +1,80 @@
 // -----------------------------------------------------------------------------
-// Scene actions (SDK v0.14+, Gladys 5.1+).
+// Scene action handlers (manifest `scene_actions`, Gladys 5.1+).
 //
-// A scene action is an OPERATION a scene author places in a scene, with
-// parameters and a result: "identify this device", "take a snapshot", "clean
-// these rooms". Each one is declared in the manifest `scene_actions` field
-// (key, label, `fields` in the config_schema grammar, scalar `outputs`) and
-// handled here, keyed by that same `key`; index.js registers every entry with
-// `gladys.onSceneAction(key, ...)`.
-//
-// Scene TRIGGERS are the other direction ("this happened"): they are fired by
-// the device that observes the event, see src/devices/motionSensor.js.
-//
-// The rules that matter:
-//   - `fields` arrive RESOLVED: scene variables substituted, defaults applied,
-//     validated by the core; a `"source": "devices"` field is the chosen
-//     device external_id;
-//   - resolve an object of the declared `outputs` (scalars only), readable by
-//     the following actions of the scene, or `undefined` for none. Keys not
-//     declared in the manifest are dropped by the core;
-//   - throwing fails THIS action only: the scene logs it and continues. A
-//     scene action is never a condition: return an output and let the scene
-//     author gate on it;
-//   - never fire a scene event as a consequence of a received action: a scene
-//     bound to that event would loop through the integration.
+// "Are all nodes ready?" is already a scene condition on the device features.
+// "State of the cluster" is what a condition cannot do: put the state of the
+// cluster in a message ("Home lab: 3/3 nodes ready, 42 pods running,
+// degraded: web (home)"), with every figure as an output too, for a user who
+// did not add the cluster device. It reads the cluster again when the last
+// read is older than 15 seconds. An unreachable cluster is an answer, not a
+// failure: `online` false, and the summary says so.
 // -----------------------------------------------------------------------------
 
-import { createLogger } from '@gladysassistant/integration-sdk';
-import { signalDevice } from './devices/index.js';
+import { totals } from './kube/model.js';
+import { SUMMARY_TEXT, errorText, labelled } from './texts.js';
 
-const logger = createLogger({ name: 'scenes' });
+// Names listed in the summary, at most (the rest is counted).
+export const MAX_LISTED_NAMES = 5;
+
+const list = (names) => {
+  const listed = names.slice(0, MAX_LISTED_NAMES);
+  const more = names.length > listed.length ? `, +${names.length - listed.length}` : '';
+  return `${listed.join(', ')}${more}`;
+};
+
+/** The one-line state of the cluster, in the configured language. */
+export function summarize(view, language) {
+  const text = SUMMARY_TEXT[language] ?? SUMMARY_TEXT.en;
+  if (!view.online) {
+    return labelled(view.name, view.error ? errorText(view.error, language) : '…', language);
+  }
+  const { snapshot } = view;
+  const { nodesReady, nodesTotal, degraded } = view.totals;
+  const parts = [text.nodes(nodesReady, nodesTotal), text.pods(snapshot.pods.running)];
+  const notReady = snapshot.nodes.filter((node) => !node.ready).map((node) => node.name);
+  if (notReady.length) {
+    parts.push(text.notReady(list(notReady)));
+  }
+  if (degraded.length) {
+    parts.push(text.degraded(list(degraded.map((w) => `${w.name} (${w.namespace})`))));
+  }
+  if (snapshot.pods.failed) {
+    parts.push(text.failed(snapshot.pods.failed));
+  }
+  if (snapshot.pods.pending) {
+    parts.push(text.pending(snapshot.pods.pending));
+  }
+  if (!notReady.length && !degraded.length && !snapshot.pods.failed) {
+    parts.push(text.ok);
+  }
+  return labelled(view.name, parts.join(', '), language);
+}
 
 export const SCENE_ACTIONS = {
-  // The ack is awaited under the action's `timeout_seconds` (15 s in the
-  // manifest), counted from the moment the scene reaches the action.
-  async identify_device(gladys, { fields, config }) {
-    logger.info(`Scene action identify_device <- ${fields.device}`);
-    const signalled = await signalDevice(gladys, fields.device, config);
-    return { signalled };
+  async get_cluster_status(hub) {
+    hub.assertConfigured();
+    await hub.refreshIfStale();
+    const view = hub.view();
+    const outputs = {
+      name: view.name,
+      online: view.online,
+      summary: summarize(view, hub.config.language),
+    };
+    if (!view.online) {
+      return outputs;
+    }
+    const { snapshot } = view;
+    const { nodesReady, nodesTotal, degraded } = totals(snapshot);
+    return {
+      ...outputs,
+      version: snapshot.version,
+      nodes_ready: nodesReady,
+      nodes_total: nodesTotal,
+      pods_running: snapshot.pods.running,
+      pods_pending: snapshot.pods.pending,
+      pods_failed: snapshot.pods.failed,
+      pods_crash_looping: snapshot.pods.crashLooping,
+      workloads_degraded: degraded.length,
+    };
   },
 };

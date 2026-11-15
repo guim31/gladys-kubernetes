@@ -1,61 +1,237 @@
-# Demo Devices Template
+# Kubernetes
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+This integration brings the state of your **Kubernetes cluster** into Gladys —
+k3s, k0s, MicroK8s, Talos, kubeadm, a Raspberry Pi cluster or a single-node
+home server alike: the cluster itself, one device per node and one per
+Deployment, StatefulSet and DaemonSet you choose. Scenes can react when a node
+is no longer ready, a workload is degraded, a pod is in CrashLoopBackOff or the
+API server no longer answers, and a dashboard widget sums the cluster up.
 
-## What you get
+It only **reads**: a ServiceAccount with a read-only role is enough, and Gladys
+never changes anything in the cluster. Everything stays on your local network.
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+Tested against a real k3s v1.31.4 cluster (Docker): a healthy Deployment, a
+crashing one, a pod that cannot be scheduled, an image that does not exist, a
+StatefulSet, a DaemonSet, filtered namespaces, a wrong token, a stopped server
+and a node under disk pressure. Not yet with a real Gladys instance nor on
+every distribution: feedback welcome on
+[the issues](https://github.com/guim31/gladys-kubernetes/issues).
 
-## Configuration
+## What you need
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+- Gladys Assistant 5.1.0 or later.
+- A Kubernetes cluster whose API server (port 6443 by default) is reachable
+  from the Gladys machine.
+- `kubectl` with administrator rights, once, to create the read-only account.
+- Optional: metrics-server (installed by default with k3s) for the CPU and
+  memory of the nodes.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+## Getting started
 
-## Actions
+### 1. Create a read-only account
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+Save this file as `gladys-reader.yaml`, then run
+`kubectl apply -f gladys-reader.yaml`. It creates a `gladys` namespace, a
+ServiceAccount `gladys-reader`, a role that can only read (get, list, watch)
+nodes, pods, namespaces, Deployments, StatefulSets, DaemonSets and the node
+metrics, and a long-lived token.
 
-## Scenes
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gladys
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gladys-reader
+  namespace: gladys
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gladys-reader
+rules:
+  - apiGroups: ['']
+    resources: ['nodes', 'pods', 'namespaces']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['apps']
+    resources: ['deployments', 'statefulsets', 'daemonsets']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['metrics.k8s.io']
+    resources: ['nodes']
+    verbs: ['get', 'list']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gladys-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gladys-reader
+subjects:
+  - kind: ServiceAccount
+    name: gladys-reader
+    namespace: gladys
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gladys-reader-token
+  namespace: gladys
+  annotations:
+    kubernetes.io/service-account.name: gladys-reader
+type: kubernetes.io/service-account-token
+```
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+Then print the token:
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+```sh
+kubectl -n gladys get secret gladys-reader-token -o jsonpath='{.data.token}' | base64 -d
+```
+
+### 2. Configure the integration
+
+In Gladys, **Integrations → Kubernetes → Configuration**:
+
+- **API server address**: the `server:` line of your kubeconfig, e.g.
+  `https://192.168.1.30:6443`. A bare IP gets `https://` and port 6443.
+- **ServiceAccount token**: the token printed above.
+- **Trust the certificate**: the cluster signs its own certificate. Either
+  paste the **cluster authority** — the value of `certificate-authority-data`
+  in your kubeconfig, or the content of the `ca.crt` file, as is — or leave it
+  empty, click **Test the connection**: the message shows the SHA-256
+  fingerprint the server sent. Check it, then paste it in **Certificate
+  fingerprint**. Until one of the two is filled, the token is never sent.
+- **Namespaces** (optional): `home, media` to follow only these namespaces.
+  Empty: every namespace.
+- **Cluster name**, **Refresh interval** (1 minute by default) and **Language
+  of the names**.
+
+To check a fingerprint, on a machine that has your kubeconfig:
+
+```sh
+kubectl config view --raw --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d | openssl x509 -noout -fingerprint -sha256
+```
+
+On a k3s server: `openssl x509 -in /var/lib/rancher/k3s/server/tls/server-ca.crt -noout -fingerprint -sha256`.
+
+### 3. Add the devices
+
+In the **Discover** tab, add the cluster, the nodes and the workloads you
+want to follow. The others are not sent to Gladys, but the triggers and the
+widget still watch them.
+
+## The devices
+
+### The cluster
+
+| Feature                  | Meaning                                                 |
+| ------------------------ | ------------------------------------------------------- |
+| Reachable                | 1 while the API server answers, 0 once it is silent     |
+| Version                  | the Kubernetes version, e.g. `v1.31.4+k3s1`             |
+| Nodes ready              | nodes whose `Ready` condition is true                   |
+| Nodes                    | every node                                              |
+| Pods running             | pods in the `Running` phase                             |
+| Pods pending             | pods waiting to be scheduled or started                 |
+| Pods failed              | `Failed` pods and pods stuck on an error (image, crash) |
+| Pods in CrashLoopBackOff | pods with a container that keeps crashing               |
+| Pods restarted (1 h)     | pods with a container that ended within the last hour   |
+| Degraded workloads       | workloads with fewer ready replicas than wanted         |
+
+The pods and workloads counted are those of the chosen namespaces; the
+finished pods (Jobs) are left out.
+
+### Nodes
+
+Ready, Memory pressure and Disk pressure (1 = yes). With metrics-server, also
+CPU and Memory, in percent of what the node can give to pods. A node added
+before metrics-server was installed gets them through **Update** in the
+Discover tab.
+
+### Deployments, StatefulSets and DaemonSets
+
+Ready replicas, Desired replicas, and Healthy (1 when every wanted replica is
+ready). A workload scaled to zero is healthy.
 
 ## Dashboard
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+The **Kubernetes cluster** widget shows four tiles — nodes ready, pods
+running, pods failed, degraded workloads — then the problems: nodes not ready
+or under pressure, degraded workloads with their replicas, pods in
+CrashLoopBackOff, or one green row when all is well. Its settings hide the
+problem list and the **Refresh** button.
+
+## Scenes
+
+### Triggers
+
+- **Node not ready**: a node is no longer ready on two reads in a row.
+  Filter: a node, or every node. Variables: node, reason (e.g.
+  `NodeStatusUnknown`).
+- **Workload degraded**: a Deployment, StatefulSet or DaemonSet has fewer
+  ready replicas than wanted for 3 minutes (a rolling update heals before).
+  Filter: a workload. Variables: name, namespace, kind, ready and desired
+  replicas.
+- **Pod in CrashLoopBackOff**: a container keeps crashing. Announced once,
+  and again only after it ran 10 minutes without crashing. Filter: the
+  workload of the pod. Variables: pod, container, namespace, workload,
+  restarts.
+- **Cluster unreachable**: the API server no longer answers, on two reads 15
+  seconds apart. Variables: cluster, reason.
+
+What is already wrong when the integration starts for the first time is only
+recorded, not announced. The integration remembers what it announced across
+restarts.
+
+### Actions
+
+- **State of the cluster**: reads the cluster (again if the last read is
+  older than 15 seconds) and gives the next actions a ready-made summary —
+  "Home lab: nodes ready: 3/3, pods running: 42, degraded: web (home)" — and
+  every figure: version, nodes, pods running, pending, failed, in
+  CrashLoopBackOff, degraded workloads. A silent cluster is not an error:
+  "Answers" is false and the summary says why.
+
+### Scene ideas
+
+- **Morning report**: every day at 8:00, State of the cluster → send the
+  summary on Telegram.
+- **Home server lost**: Cluster unreachable or Node not ready → send a
+  message, flash a light.
+- **Broken update**: Pod in CrashLoopBackOff on the Deployment of your home
+  automation → send a message with the pod and its restarts.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"certificate not trusted"**: paste the cluster authority, or check and
+  paste the fingerprint the message shows. After a reinstallation of the
+  cluster, its authority changed: paste the new one.
+- **"token refused"**: the token is incomplete, or belongs to another cluster.
+  Print it again with the command of step 1.
+- **"access refused"**: the role of step 1 is missing or was changed; apply
+  the file again.
+- **"the API server does not answer"**: check the address and the port, and
+  that a firewall lets the Gladys machine reach port 6443.
+- **"no Kubernetes API at this address"**: another service answers there
+  (the Rancher interface, a dashboard).
+- **No CPU nor memory on the nodes**: metrics-server is not installed, or not
+  started yet; **Test the connection** says so.
+- **Test the connection lists "unknown namespaces"**: a namespace name is
+  misspelled.
+
+## Limits
+
+- Read only: the integration never starts, stops nor scales anything.
+- One cluster per installation of the integration.
+- Pods are counted, not proposed one by one: they come and go at every
+  update. Jobs, CronJobs and bare pods are counted but have no device.
+- The CPU and memory of the nodes need metrics-server.
+- The values of the devices that are not added are not sent to Gladys; the
+  triggers and the widget still use them.
+- A large cluster (thousands of pods) is read in full at every interval:
+  choose a longer interval, or the namespaces to follow.
+- Not affiliated with the Kubernetes project nor the Cloud Native Computing
+  Foundation.

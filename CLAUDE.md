@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "crash"   # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +31,24 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+index.js                          SDK wiring only: src/app.js registers the handlers before connect()
+src/app.js                        every SDK handler -> the hub (also used by the tests)
+src/hub.js                        the cluster: reading timer, states, scene events, status, views
+src/alerts.js                     transitions: node not ready, workload degraded, crash loop (persisted)
+src/devices.js                    cluster, node, deployment/statefulset/daemonset devices; names (4 languages)
+src/kube/client.js                REST API: /version, nodes, pods, apps/v1 workloads, metrics; errors by kind
+src/kube/model.js                 raw lists -> one snapshot (quantities, conditions, pod owners)
+src/kube/http.js                  node:tls + node:http GET: trust checked before the token is written
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+src/widgets.js                    dashboard widget `cluster` (manifest `widgets`)
+src/texts.js                      connection, error, report, summary texts (4 languages)
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+src/store.js                      /data/kubernetes-state.json (what the triggers compare with)
+src/logs.js                       repeated failures logged once, then once when they heal
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+                                  and helpers/fakeKube.js (real k3s answers in test/fixtures/k3s)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +78,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, widget texts, feature names, manifest texts, and
+  `docs/{en,fr,de,es}.md`, kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -214,6 +223,47 @@ code de ce dépôt. Compléter ce fichier quand un nouveau piège est découvert
 - Les filtres de scène ne font qu'égalité et appartenance : un seuil reste le travail d'un capteur.
 - **Les clés de widgets, de déclencheurs et d'actions sont figées une fois publiées.**
 - `gladys_version` `>=5.1.0` dès qu'il y a widgets, déclencheurs ou actions de scène.
+
+## Kubernetes (propre à ce dépôt)
+
+- **API lue** : quelques GET REST, sans bibliothèque cliente (`@kubernetes/client-node` pèse des dizaines de
+  Mo) : `/version` d'abord, seul (un certificat refusé ou une mauvaise adresse échoue une fois), puis nœuds,
+  pods, `apps/v1` deployments/statefulsets/daemonsets (tous les espaces de noms, ou une requête par espace
+  choisi : un espace inexistant répond **200 avec une liste vide**, d'où la vérification par
+  `/api/v1/namespaces` dans « Tester la connexion ») et `metrics.k8s.io/v1beta1/nodes`, facultatif (403, 404,
+  503 = pas de métriques). Mauvais jeton : 401 ; ressource non accordée par le rôle : 403.
+- **Confiance TLS** : k3s, kubeadm… signent avec leur propre autorité. `src/kube/http.js` ouvre la connexion
+  par `tls.connect` avec `rejectUnauthorized: false`, vérifie (`socket.authorized` avec l'autorité collée, ou
+  empreinte présente dans la chaîne) **avant** d'écrire la requête, puis passe la socket à `http.request` par
+  `createConnection`. **Piège payé** : avec `agent: false` (ou un agent), Node ignore `createConnection` et ouvre
+  une connexion TCP en clair : la requête, jeton compris, partait en clair (k3s répondait 400 « Client sent an
+  HTTP request to an HTTPS server »). Et `http.request` refuse une URL `https:` : passer des options.
+  `test/http.test.js` le fige contre un vrai serveur TLS local.
+- **Empreinte affichée** : celle du **dernier certificat de la chaîne envoyée** — l'autorité chez k3s (qui envoie
+  serveur + CA), donc stable au renouvellement annuel du certificat serveur. L'épinglage accepte n'importe quel
+  certificat de la chaîne.
+- **Champ d'une ligne** : un PEM collé dans un `string` perd ses retours à la ligne (espaces ou rien selon le
+  navigateur) ; `parseCaCertificate` reconstruit le PEM, accepte aussi `certificate-authority-data` (le PEM en
+  base64) et un DER en base64.
+- **Comptes** : « en échec » = phase `Failed` (pods évincés compris) ou conteneur en attente sur une erreur qui ne
+  se résout pas seule (`CrashLoopBackOff`, `ImagePullBackOff`, `ErrImagePull`, `CreateContainerConfigError`…) ;
+  un pod `ImagePullBackOff` est en phase `Pending` mais compté en échec, pas en attente. Pods `Succeeded` (Jobs)
+  ignorés. `readyReplicas` est **absent** (pas 0) quand aucun réplica n'est prêt. Le Deployment d'un pod se
+  déduit du ReplicaSet propriétaire moins le suffixe `pod-template-hash`.
+- **Déclencheurs** : nœud pas prêt sur deux lectures ; charge dégradée depuis 3 min et deux lectures (une mise à
+  jour progressive se rétablit avant) ; CrashLoopBackOff annoncé une fois par conteneur (uid du pod + nom),
+  réarmé après 10 min en marche et prêt (délai après lequel le kubelet remet son back-off à zéro). Premier
+  passage sans état sauvegardé : noté, pas annoncé.
+- **Disque de l'hôte** : sur une machine de test au disque plein à 97 %, k3s démarre en `DiskPressure` et évince tout ; pour les
+  tests, `--kubelet-arg=eviction-hard=imagefs.available<1%,nodefs.available<1%`.
+
+## Vérifié sur un vrai k3s
+
+Le 15/11/2026, image de l'intégration lancée avec les contraintes du bac à sable (`--cap-drop ALL --security-opt
+no-new-privileges --read-only --memory 256m --pids-limit 256`, volume `/data`, réseau en pont
+`gladys-test-kubernetes`, aucun port publié) contre `rancher/k3s:v1.31.4-k3s1` (conteneur privilégié, 1,5 Go) :
+voir la section « Checked on a real cluster » du README. Non vérifié : une vraie instance Gladys, un cluster à
+plusieurs nœuds, k0s, MicroK8s, Talos, kubeadm, Rancher.
 
 ## Store
 

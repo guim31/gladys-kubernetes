@@ -30,6 +30,19 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration holds:
+
+- the **ServiceAccount token** of the cluster, stored by Gladys as a secret
+  field of the configuration and sent only to the configured API server, in
+  the `Authorization` header, once the TLS handshake is trusted (pasted
+  authority or pinned fingerprint). It is never logged nor written to `/data`.
+  Give it the read-only role of the documentation, nothing more;
+- in `/data/kubernetes-state.json`, the names of the nodes, workloads and
+  pods the scene triggers already announced. Nothing else is written.
+
+Network: requests from the container to the API server only, on the local
+network; no inbound port, no cloud service.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+Kubernetes and the clusters the integration reads.

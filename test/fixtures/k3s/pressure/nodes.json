@@ -1,0 +1,118 @@
+{
+  "kind": "NodeList",
+  "apiVersion": "v1",
+  "metadata": {
+    "resourceVersion": "691"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "gladys-test-kubernetes-k3s",
+        "uid": "a5ae7877-5efa-48a3-bc85-869b4d6b6b67",
+        "creationTimestamp": "2026-11-15T09:26:45Z",
+        "labels": {
+          "beta.kubernetes.io/arch": "amd64",
+          "beta.kubernetes.io/instance-type": "k3s",
+          "beta.kubernetes.io/os": "linux",
+          "kubernetes.io/arch": "amd64",
+          "kubernetes.io/hostname": "gladys-test-kubernetes-k3s",
+          "kubernetes.io/os": "linux",
+          "node-role.kubernetes.io/control-plane": "true",
+          "node-role.kubernetes.io/master": "true",
+          "node.kubernetes.io/instance-type": "k3s"
+        }
+      },
+      "status": {
+        "capacity": {
+          "cpu": "4",
+          "ephemeral-storage": "490617784Ki",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "16150116Ki",
+          "pods": "110"
+        },
+        "allocatable": {
+          "cpu": "4",
+          "ephemeral-storage": "477272979901",
+          "hugepages-1Gi": "0",
+          "hugepages-2Mi": "0",
+          "memory": "16150116Ki",
+          "pods": "110"
+        },
+        "conditions": [
+          {
+            "type": "MemoryPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2026-11-15T09:27:15Z",
+            "lastTransitionTime": "2026-11-15T09:26:45Z",
+            "reason": "KubeletHasSufficientMemory",
+            "message": "kubelet has sufficient memory available"
+          },
+          {
+            "type": "DiskPressure",
+            "status": "True",
+            "lastHeartbeatTime": "2026-11-15T09:27:15Z",
+            "lastTransitionTime": "2026-11-15T09:26:55Z",
+            "reason": "KubeletHasDiskPressure",
+            "message": "kubelet has disk pressure"
+          },
+          {
+            "type": "PIDPressure",
+            "status": "False",
+            "lastHeartbeatTime": "2026-11-15T09:27:15Z",
+            "lastTransitionTime": "2026-11-15T09:26:45Z",
+            "reason": "KubeletHasSufficientPID",
+            "message": "kubelet has sufficient PID available"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastHeartbeatTime": "2026-11-15T09:27:15Z",
+            "lastTransitionTime": "2026-11-15T09:26:45Z",
+            "reason": "KubeletReady",
+            "message": "kubelet is posting ready status"
+          }
+        ],
+        "addresses": [
+          {
+            "type": "InternalIP",
+            "address": "192.0.2.10"
+          },
+          {
+            "type": "Hostname",
+            "address": "gladys-test-kubernetes-k3s"
+          }
+        ],
+        "daemonEndpoints": {
+          "kubeletEndpoint": {
+            "Port": 10250
+          }
+        },
+        "nodeInfo": {
+          "machineID": "",
+          "systemUUID": "00000000-0000-4000-8000-000000000001",
+          "bootID": "00000000-0000-4000-8000-000000000002",
+          "kernelVersion": "6.8.0-138-generic",
+          "osImage": "K3s v1.31.4+k3s1",
+          "containerRuntimeVersion": "containerd://1.7.23-k3s2",
+          "kubeletVersion": "v1.31.4+k3s1",
+          "kubeProxyVersion": "v1.31.4+k3s1",
+          "operatingSystem": "linux",
+          "architecture": "amd64"
+        }
+      },
+      "spec": {
+        "podCIDR": "10.42.0.0/24",
+        "podCIDRs": ["10.42.0.0/24"],
+        "providerID": "k3s://gladys-test-kubernetes-k3s",
+        "taints": [
+          {
+            "key": "node.kubernetes.io/disk-pressure",
+            "effect": "NoSchedule",
+            "timeAdded": "2026-11-15T09:26:55Z"
+          }
+        ]
+      }
+    }
+  ]
+}
